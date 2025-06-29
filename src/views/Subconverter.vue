@@ -501,17 +501,17 @@ export default {
             label: "AnyRelay",
             options: [
               {
+                label: "No DNS leakage",
+                value: "https://raw.githubusercontent.com/YaoYinYing/AnyRelay/main/config/nodnsleak.ini"
+              },
+              {
                 label: "AnyRelay-LB",
                 value: "https://raw.githubusercontent.com/YaoYinYing/AnyRelay/main/config/relay.ini"
               },
               {
                 label: "AnyRelay-No LB",
                 value: "https://raw.githubusercontent.com/YaoYinYing/AnyRelay/main/config/relay_no_lb.ini"
-              },
-              {
-                label: "No DNS leakage",
-                value: "https://raw.githubusercontent.com/YaoYinYing/AnyRelay/main/config/nodnsleak.ini"
-              },
+              }
             ]
           },
           {
@@ -911,7 +911,7 @@ export default {
       form: {
         sourceSubUrl: "",
         clientType: "",
-        customBackend: this.getUrlParam() == "" ? "https://url.v1.mk" : this.getUrlParam(),
+        customBackend: this.getUrlParam() == "" ? "https://psub-oreo.yaoyy.moe/" : this.getUrlParam(),
         shortType: "https://v1.mk/short",
         remoteConfig: "https://raw.githubusercontent.com/YaoYinYing/AnyRelay/main/config/nodnsleak.ini",
         excludeRemarks: "",
@@ -964,7 +964,7 @@ export default {
     };
   },
   created() {
-    document.title = "在线订阅转换工具";
+    document.title = "Subconverter-Frontend/AnyRelay";
     this.isPC = this.$getOS().isPc;
   },
   mounted() {
