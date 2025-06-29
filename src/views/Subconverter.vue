@@ -474,6 +474,11 @@ export default {
           "sub.cm": "https://sub.cm/short",
         },
         customBackend: {
+          "psub-oreo": "https://psub-oreo.yaoyy.moe/",
+          "psub-oreo-beijing": "https://beijing-cdn.yaoyy.moe/",
+          "psub-oreo-chengdu": "https://chengdu-cdn.yaoyy.moe/",
+          "tailscale": "http://100.91.70.43:25500",
+          "zerotier": "http://192.168.194.245:25500",
           "肥羊增强型后端【vless reality+hy1+hy2】": "https://url.v1.mk",
           "肥羊备用后端【vless reality+hy1+hy2】": "https://sub.d1.mk",
           "つつ-多地防失联【负载均衡+国内优化】": "https://api.tsutsu.one",
@@ -493,14 +498,31 @@ export default {
         ],
         remoteConfig: [
           {
+            label: "AnyRelay",
+            options: [
+              {
+                label: "No DNS leakage",
+                value: "https://raw.githubusercontent.com/YaoYinYing/AnyRelay/main/config/nodnsleak.ini"
+              },
+              {
+                label: "AnyRelay-LB",
+                value: "https://raw.githubusercontent.com/YaoYinYing/AnyRelay/main/config/relay.ini"
+              },
+              {
+                label: "AnyRelay-No LB",
+                value: "https://raw.githubusercontent.com/YaoYinYing/AnyRelay/main/config/relay_no_lb.ini"
+              }
+            ]
+          },
+          {
             label: "通用",
             options: [
               {
-                label: "默认",
+                label: "ACL4SSR_Online_Full_NoAuto",
                 value: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/config/ACL4SSR_Online_Full_NoAuto.ini"
               },
               {
-                label: "默认（自动测速）",
+                label: "ACL4SSR_Online_Full_AdblockPlus",
                 value: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/config/ACL4SSR_Online_Full_AdblockPlus.ini"
               },
               {
@@ -889,9 +911,9 @@ export default {
       form: {
         sourceSubUrl: "",
         clientType: "",
-        customBackend: this.getUrlParam() == "" ? "https://url.v1.mk" : this.getUrlParam(),
+        customBackend: this.getUrlParam() == "" ? "https://psub-oreo.yaoyy.moe/" : this.getUrlParam(),
         shortType: "https://v1.mk/short",
-        remoteConfig: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/config/ACL4SSR_Online_Full_NoAuto.ini",
+        remoteConfig: "https://raw.githubusercontent.com/YaoYinYing/AnyRelay/main/config/nodnsleak.ini",
         excludeRemarks: "",
         includeRemarks: "",
         filename: "",
@@ -942,7 +964,7 @@ export default {
     };
   },
   created() {
-    document.title = "在线订阅转换工具";
+    document.title = "Subconverter-Frontend/AnyRelay";
     this.isPC = this.$getOS().isPc;
   },
   mounted() {
