@@ -505,6 +505,10 @@ export default {
                 value: "https://raw.githubusercontent.com/YaoYinYing/AnyRelay/main/config/nodnsleak.ini"
               },
               {
+                label: "Awesome subscribe",
+                value: "https://raw.githubusercontent.com/YaoYinYing/AnyRelay/main/config/nodnsleak_awesome.ini"
+              },
+              {
                 label: "AnyRelay-LB",
                 value: "https://raw.githubusercontent.com/YaoYinYing/AnyRelay/main/config/relay.ini"
               },
@@ -911,7 +915,7 @@ export default {
       form: {
         sourceSubUrl: "",
         clientType: "",
-        customBackend: this.getUrlParam() == "" ? "https://psub-oreo.yaoyy.moe/" : this.getUrlParam(),
+        customBackend: this.getUrlParam() == "" ? "https://psub-oreo.yaoyy.moe" : this.getUrlParam(),
         shortType: "https://v1.mk/short",
         remoteConfig: "https://raw.githubusercontent.com/YaoYinYing/AnyRelay/main/config/nodnsleak.ini",
         excludeRemarks: "",
@@ -1435,3 +1439,4 @@ export default {
   }
 };
 </script>
+
