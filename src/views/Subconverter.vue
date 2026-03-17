@@ -505,6 +505,10 @@ export default {
                 value: "https://raw.githubusercontent.com/YaoYinYing/AnyRelay/main/config/nodnsleak.ini"
               },
               {
+                label: "Dialer LoadBalance",
+                value: "https://raw.githubusercontent.com/waevciuwecp/subconverter_asdlokj1qpi233/refs/heads/feat-support-dialer/base/config/nodnsleak.dialer.ini"
+              },
+              {
                 label: "Awesome subscribe",
                 value: "https://raw.githubusercontent.com/YaoYinYing/AnyRelay/main/config/nodnsleak_awesome.ini"
               },
