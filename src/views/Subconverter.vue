@@ -1223,7 +1223,7 @@ export default {
       this.$message.success(`Providers 校验通过，共 ${parsed.length} 项`);
     },
     encodeProxyProvidersForRequest(proxyProviders) {
-      return encodeURIComponent(proxyProviders.replace(/%/g, "%25"));
+      return encodeURIComponent(proxyProviders);
     },
     decodeProxyProvidersFromRequest(proxyProviders) {
       return proxyProviders.replace(/%25([0-9A-Fa-f]{2})/g, "%$1");
