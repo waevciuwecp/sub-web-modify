@@ -16,9 +16,11 @@ http://192.168.10.1:8090/?backend=https://url.v1.mk
 
 ### 1) 远程配置新增
 - `Dialer`（默认，非负载均衡）  
-  `https://raw.githubusercontent.com/waevciuwecp/subconverter_asdlokj1qpi233/refs/heads/master/base/config/nodnsleak.dialer-non_lb.ini`
+  `https://raw.githubusercontent.com/YaoYinYing/AnyRelay/refs/heads/main/config/nodnsleak.dialer-non_lb.ini`
 - `Dialer LoadBalance`（可选）  
-  `https://raw.githubusercontent.com/waevciuwecp/subconverter_asdlokj1qpi233/refs/heads/master/base/config/nodnsleak.dialer.ini`
+  `https://raw.githubusercontent.com/YaoYinYing/AnyRelay/refs/heads/main/config/nodnsleak.dialer.ini`
+- `Dialer LB Media`（provider 直连媒体）  
+  `https://raw.githubusercontent.com/YaoYinYing/AnyRelay/refs/heads/main/config/nodnsleak.dialer.direct-media.ini`
 
 页面中“使用 Dialer 远程配置（默认）”按钮会直接切换到默认 `Dialer` 配置。
 
