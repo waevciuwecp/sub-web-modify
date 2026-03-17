@@ -80,7 +80,7 @@
                     plain
                     type="warning"
                     @click="selectDialerRemoteConfig"
-                >使用 Dialer LoadBalance 远程配置
+                >使用 Dialer 远程配置（默认）
                 </el-button>
               </el-form-item>
               <el-form-item label-width="0px">
@@ -98,7 +98,7 @@
                     </template>
                     <el-divider content-position="left">Dialer Proxy Providers</el-divider>
                     <el-alert
-                        title="Dialer 仅对 Clash / ClashR 目标生效，建议配合 Dialer LoadBalance 配置"
+                        title="Dialer 仅对 Clash / ClashR 目标生效，默认使用 Dialer 配置，可按需切换 Dialer LoadBalance"
                         type="info"
                         :closable="false"
                         show-icon
@@ -602,6 +602,10 @@ export default {
               {
                 label: "No DNS leakage",
                 value: "https://raw.githubusercontent.com/YaoYinYing/AnyRelay/main/config/nodnsleak.ini"
+              },
+              {
+                label: "Dialer",
+                value: "https://raw.githubusercontent.com/waevciuwecp/subconverter_asdlokj1qpi233/refs/heads/master/base/config/nodnsleak.dialer-non_lb.ini"
               },
               {
                 label: "Dialer LoadBalance",
@@ -1199,8 +1203,8 @@ export default {
           });
     },
     selectDialerRemoteConfig() {
-      this.form.remoteConfig = "https://raw.githubusercontent.com/waevciuwecp/subconverter_asdlokj1qpi233/refs/heads/master/base/config/nodnsleak.dialer.ini";
-      this.$message.success("已切换到 Dialer LoadBalance 远程配置");
+      this.form.remoteConfig = "https://raw.githubusercontent.com/waevciuwecp/subconverter_asdlokj1qpi233/refs/heads/master/base/config/nodnsleak.dialer-non_lb.ini";
+      this.$message.success("已切换到 Dialer（默认）远程配置");
     },
     applyDialerProvidersSample() {
       this.form.proxyProviderEntries = [
