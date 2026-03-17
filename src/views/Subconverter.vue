@@ -605,11 +605,15 @@ export default {
               },
               {
                 label: "Dialer",
-                value: "https://raw.githubusercontent.com/waevciuwecp/subconverter_asdlokj1qpi233/refs/heads/master/base/config/nodnsleak.dialer-non_lb.ini"
+                value: "https://raw.githubusercontent.com/YaoYinYing/AnyRelay/refs/heads/main/config/nodnsleak.dialer-non_lb.ini"
               },
               {
                 label: "Dialer LoadBalance",
-                value: "https://raw.githubusercontent.com/waevciuwecp/subconverter_asdlokj1qpi233/refs/heads/master/base/config/nodnsleak.dialer.ini"
+                value: "https://raw.githubusercontent.com/YaoYinYing/AnyRelay/refs/heads/main/config/nodnsleak.dialer.ini"
+              },
+              {
+                label: "Dialer LB Media",
+                value: "https://raw.githubusercontent.com/YaoYinYing/AnyRelay/refs/heads/main/config/nodnsleak.dialer.direct-media.ini"
               },
               {
                 label: "Awesome subscribe",
@@ -1203,7 +1207,7 @@ export default {
           });
     },
     selectDialerRemoteConfig() {
-      this.form.remoteConfig = "https://raw.githubusercontent.com/waevciuwecp/subconverter_asdlokj1qpi233/refs/heads/master/base/config/nodnsleak.dialer-non_lb.ini";
+      this.form.remoteConfig = "https://raw.githubusercontent.com/YaoYinYing/AnyRelay/refs/heads/main/config/nodnsleak.dialer-non_lb.ini";
       this.$message.success("已切换到 Dialer（默认）远程配置");
     },
     applyDialerProvidersSample() {
