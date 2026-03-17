@@ -1148,6 +1148,12 @@ export default {
     applyDialerProvidersSample() {
       this.form.proxyProviders = '[{"name":"sub-dialer-provider-1","type":"http","url":"https://example.com/sub.yaml"},{"name":"relay-provider-1","type":"http","url":"https://example.com/relay.yaml"}]';
     },
+    encodeProxyProvidersForRequest(proxyProviders) {
+      return encodeURIComponent(proxyProviders.replace(/%/g, "%25"));
+    },
+    decodeProxyProvidersFromRequest(proxyProviders) {
+      return proxyProviders.replace(/%25([0-9A-Fa-f]{2})/g, "%$1");
+    },
     makeUrl() {
       if (this.form.sourceSubUrl === "" || this.form.clientType === "") {
         this.$message.error("订阅链接与客户端为必填项");
@@ -1217,7 +1223,7 @@ export default {
         }
       }
       if (this.form.proxyProviders.trim() !== "") {
-        this.customSubUrl += "&proxy_providers=" + encodeURIComponent(this.form.proxyProviders.trim());
+        this.customSubUrl += "&proxy_providers=" + this.encodeProxyProvidersForRequest(this.form.proxyProviders.trim());
       }
       this.customSubUrl +=
           "&emoji=" +
@@ -1414,7 +1420,7 @@ export default {
           this.form.applyDialerTo = param.get("apply_dialer_to");
         }
         if (param.get("proxy_providers")) {
-          this.form.proxyProviders = param.get("proxy_providers");
+          this.form.proxyProviders = this.decodeProxyProvidersFromRequest(param.get("proxy_providers"));
         }
         if (param.get("emoji")) {
           this.form.emoji = param.get("emoji") === 'true';
@@ -1476,7 +1482,7 @@ export default {
       data.append("use_dialer", encodeURIComponent(this.form.useDialer.toString()));
       data.append("dialer_group_name", encodeURIComponent(this.form.dialerGroupName));
       data.append("apply_dialer_to", encodeURIComponent(this.form.applyDialerTo));
-      data.append("proxy_providers", encodeURIComponent(this.form.proxyProviders));
+      data.append("proxy_providers", this.encodeProxyProvidersForRequest(this.form.proxyProviders));
       return data;
     },
     confirmUploadScript() {
