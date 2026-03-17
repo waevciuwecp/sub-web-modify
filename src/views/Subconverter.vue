@@ -129,11 +129,19 @@
                       <el-input
                           v-model="form.proxyProviders"
                           type="textarea"
-                          :rows="4"
+                          :autosize="{ minRows: 4, maxRows: 10 }"
+                          maxlength="12000"
+                          show-word-limit
                           placeholder='proxy_providers JSON，例如 [{"name":"sub-dialer-provider-1","type":"http","url":"https://example.com/sub.yaml"}]'
                       />
+                      <div style="margin-top: 6px; font-size: 12px; color: #909399;">
+                        使用 JSON 数组，每项至少包含 name 和 url。支持 http provider，可选 type/path/interval。
+                      </div>
                       <div style="margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap;">
                         <el-button size="mini" type="primary" plain @click="applyDialerProvidersSample">填入示例</el-button>
+                        <el-button size="mini" type="success" plain @click="appendProxyProviderTemplate">追加模板</el-button>
+                        <el-button size="mini" type="warning" plain @click="formatProxyProvidersJson">格式化 JSON</el-button>
+                        <el-button size="mini" type="info" plain @click="validateProxyProvidersJson">校验 JSON</el-button>
                         <el-button size="mini" @click="form.proxyProviders = ''">清空 Providers</el-button>
                       </div>
                     </el-form-item>
@@ -526,10 +534,13 @@ export default {
         },
         customBackend: {
           "psub-oreo": "https://psub-oreo.yaoyy.moe",
+          "sub-dialer": "https://sub-dialer.yaoyy.moe",
           "psub-oreo-beijing": "https://beijing-cdn.yaoyy.moe",
           "psub-oreo-chengdu": "https://chengdu-cdn.yaoyy.moe",
           "tailscale": "http://100.91.70.43:25500",
           "zerotier": "http://192.168.194.245:25500",
+          "tailscale-dialer": "http://100.91.70.43:25501",
+          "zerotier-dialer": "http://192.168.194.245:25501",
           "肥羊增强型后端【vless reality+hy1+hy2】": "https://url.v1.mk",
           "肥羊备用后端【vless reality+hy1+hy2】": "https://sub.d1.mk",
           "つつ-多地防失联【负载均衡+国内优化】": "https://api.tsutsu.one",
@@ -539,6 +550,9 @@ export default {
           "sub作者&lhie1提供": "https://api.dler.io",
         },
         backendOptions: [
+          {value: "https://sub-dialer.yaoyy.moe"},
+          {value: "http://100.91.70.43:25501"},
+          {value: "http://192.168.194.245:25501"},
           {value: "https://url.v1.mk"},
           {value: "https://sub.d1.mk"},
           {value: "https://api.tsutsu.one"},
@@ -1147,6 +1161,66 @@ export default {
     },
     applyDialerProvidersSample() {
       this.form.proxyProviders = '[{"name":"sub-dialer-provider-1","type":"http","url":"https://example.com/sub.yaml"},{"name":"relay-provider-1","type":"http","url":"https://example.com/relay.yaml"}]';
+    },
+    parseProxyProvidersJson() {
+      const content = this.form.proxyProviders.trim();
+      if (content === "") {
+        return [];
+      }
+      try {
+        return JSON.parse(content);
+      } catch (e) {
+        try {
+          return JSON.parse(content.replace(/'/g, '"'));
+        } catch (err) {
+          return null;
+        }
+      }
+    },
+    appendProxyProviderTemplate() {
+      const parsed = this.parseProxyProvidersJson();
+      if (parsed === null || !Array.isArray(parsed)) {
+        this.$message.error("Providers JSON 格式不正确，无法追加模板");
+        return;
+      }
+      parsed.push({
+        name: `dialer-provider-${parsed.length + 1}`,
+        type: "http",
+        url: "https://example.com/sub.yaml",
+        interval: 3600
+      });
+      this.form.proxyProviders = JSON.stringify(parsed, null, 2);
+      this.$message.success("已追加 provider 模板");
+    },
+    formatProxyProvidersJson() {
+      const parsed = this.parseProxyProvidersJson();
+      if (parsed === null || !Array.isArray(parsed)) {
+        this.$message.error("Providers JSON 不是合法数组");
+        return;
+      }
+      this.form.proxyProviders = JSON.stringify(parsed, null, 2);
+      this.$message.success("Providers JSON 已格式化");
+    },
+    validateProxyProvidersJson() {
+      const parsed = this.parseProxyProvidersJson();
+      if (parsed === null || !Array.isArray(parsed)) {
+        this.$message.error("Providers JSON 不是合法数组");
+        return;
+      }
+      const invalid = parsed.find(
+          item =>
+              !item ||
+              typeof item !== "object" ||
+              typeof item.name !== "string" ||
+              item.name.trim() === "" ||
+              typeof item.url !== "string" ||
+              item.url.trim() === ""
+      );
+      if (invalid) {
+        this.$message.error("存在无效 provider 项：每项至少需要 name 和 url");
+        return;
+      }
+      this.$message.success(`Providers 校验通过，共 ${parsed.length} 项`);
     },
     encodeProxyProvidersForRequest(proxyProviders) {
       return encodeURIComponent(proxyProviders.replace(/%/g, "%25"));
