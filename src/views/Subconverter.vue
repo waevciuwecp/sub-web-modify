@@ -74,6 +74,15 @@
                   </el-option-group>
                 </el-select>
               </el-form-item>
+              <el-form-item label-width="80px" style="margin-top: -8px">
+                <el-button
+                    size="mini"
+                    plain
+                    type="warning"
+                    @click="selectDialerRemoteConfig"
+                >使用 Dialer LoadBalance 远程配置
+                </el-button>
+              </el-form-item>
               <el-form-item label-width="0px">
                 <el-collapse>
                   <el-collapse-item>
@@ -87,6 +96,48 @@
                         </el-button>
                       </el-form-item>
                     </template>
+                    <el-divider content-position="left">Dialer Proxy Providers</el-divider>
+                    <el-alert
+                        title="Dialer 仅对 Clash / ClashR 目标生效，建议配合 Dialer LoadBalance 配置"
+                        type="info"
+                        :closable="false"
+                        show-icon
+                        style="margin-bottom: 12px"
+                    />
+                    <el-form-item label="Dialer开关:">
+                      <el-switch
+                          v-model="form.useDialer"
+                          active-text="启用 use_dialer"
+                          inactive-text="关闭"
+                      />
+                    </el-form-item>
+                    <el-form-item label="Dialer组名:">
+                      <el-input
+                          v-model="form.dialerGroupName"
+                          :disabled="!form.useDialer"
+                          placeholder="默认 dialer"
+                      />
+                    </el-form-item>
+                    <el-form-item label="应用节点:">
+                      <el-input
+                          v-model="form.applyDialerTo"
+                          :disabled="!form.useDialer"
+                          placeholder="可选正则，例如 awesome|Scholar"
+                      />
+                    </el-form-item>
+                    <el-form-item label="Providers:">
+                      <el-input
+                          v-model="form.proxyProviders"
+                          type="textarea"
+                          :rows="4"
+                          placeholder='proxy_providers JSON，例如 [{"name":"sub-dialer-provider-1","type":"http","url":"https://example.com/sub.yaml"}]'
+                      />
+                      <div style="margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap;">
+                        <el-button size="mini" type="primary" plain @click="applyDialerProvidersSample">填入示例</el-button>
+                        <el-button size="mini" @click="form.proxyProviders = ''">清空 Providers</el-button>
+                      </div>
+                    </el-form-item>
+                    <el-divider content-position="left">通用高级参数</el-divider>
                     <el-form-item label="包含节点:">
                       <el-input v-model="form.includeRemarks" placeholder="要保留的节点，支持正则"/>
                     </el-form-item>
@@ -503,6 +554,10 @@ export default {
               {
                 label: "No DNS leakage",
                 value: "https://raw.githubusercontent.com/YaoYinYing/AnyRelay/main/config/nodnsleak.ini"
+              },
+              {
+                label: "Dialer LoadBalance",
+                value: "https://raw.githubusercontent.com/waevciuwecp/subconverter_asdlokj1qpi233/refs/heads/master/base/config/nodnsleak.dialer.ini"
               },
               {
                 label: "Awesome subscribe",
@@ -938,6 +993,10 @@ export default {
         appendType: false,
         insert: false, // 是否插入默认订阅的节点，对应配置项 insert_url
         new_name: true, // 是否使用 Clash 新字段
+        useDialer: false,
+        dialerGroupName: "dialer",
+        applyDialerTo: "",
+        proxyProviders: "",
         tpl: {
           surge: {
             doh: false // dns 查询是否使用 DoH
@@ -1082,6 +1141,13 @@ export default {
             window.open(advancedVideo);
           });
     },
+    selectDialerRemoteConfig() {
+      this.form.remoteConfig = "https://raw.githubusercontent.com/waevciuwecp/subconverter_asdlokj1qpi233/refs/heads/master/base/config/nodnsleak.dialer.ini";
+      this.$message.success("已切换到 Dialer LoadBalance 远程配置");
+    },
+    applyDialerProvidersSample() {
+      this.form.proxyProviders = '[{"name":"sub-dialer-provider-1","type":"http","url":"https://example.com/sub.yaml"},{"name":"relay-provider-1","type":"http","url":"https://example.com/relay.yaml"}]';
+    },
     makeUrl() {
       if (this.form.sourceSubUrl === "" || this.form.clientType === "") {
         this.$message.error("订阅链接与客户端为必填项");
@@ -1140,6 +1206,18 @@ export default {
       if (this.form.sort) {
         this.customSubUrl +=
             "&sort=" + this.form.sort.toString();
+      }
+      if (this.form.useDialer) {
+        this.customSubUrl += "&use_dialer=true";
+        if (this.form.dialerGroupName.trim() !== "") {
+          this.customSubUrl += "&dialer_group_name=" + encodeURIComponent(this.form.dialerGroupName.trim());
+        }
+        if (this.form.applyDialerTo.trim() !== "") {
+          this.customSubUrl += "&apply_dialer_to=" + encodeURIComponent(this.form.applyDialerTo.trim());
+        }
+      }
+      if (this.form.proxyProviders.trim() !== "") {
+        this.customSubUrl += "&proxy_providers=" + encodeURIComponent(this.form.proxyProviders.trim());
       }
       this.customSubUrl +=
           "&emoji=" +
@@ -1326,6 +1404,18 @@ export default {
         if (param.get("sort")) {
           this.form.sort = param.get("sort") === 'true';
         }
+        if (param.get("use_dialer")) {
+          this.form.useDialer = param.get("use_dialer") === 'true';
+        }
+        if (param.get("dialer_group_name")) {
+          this.form.dialerGroupName = param.get("dialer_group_name");
+        }
+        if (param.get("apply_dialer_to")) {
+          this.form.applyDialerTo = param.get("apply_dialer_to");
+        }
+        if (param.get("proxy_providers")) {
+          this.form.proxyProviders = param.get("proxy_providers");
+        }
         if (param.get("emoji")) {
           this.form.emoji = param.get("emoji") === 'true';
         }
@@ -1383,6 +1473,10 @@ export default {
       data.append("sdoh", encodeURIComponent(this.form.tpl.surge.doh.toString()));
       data.append("cdoh", encodeURIComponent(this.form.tpl.clash.doh.toString()));
       data.append("newname", encodeURIComponent(this.form.new_name.toString()));
+      data.append("use_dialer", encodeURIComponent(this.form.useDialer.toString()));
+      data.append("dialer_group_name", encodeURIComponent(this.form.dialerGroupName));
+      data.append("apply_dialer_to", encodeURIComponent(this.form.applyDialerTo));
+      data.append("proxy_providers", encodeURIComponent(this.form.proxyProviders));
       return data;
     },
     confirmUploadScript() {
