@@ -1228,6 +1228,22 @@ export default {
     decodeProxyProvidersFromRequest(proxyProviders) {
       return proxyProviders.replace(/%25([0-9A-Fa-f]{2})/g, "%$1");
     },
+    getFirstParamValue(param, keys) {
+      for (const key of keys) {
+        const value = param.get(key);
+        if (value !== null && value !== "") {
+          return value;
+        }
+      }
+      return "";
+    },
+    parseTruthyParam(value) {
+      if (typeof value !== "string") {
+        return false;
+      }
+      const normalized = value.trim().toLowerCase();
+      return normalized === "true" || normalized === "1" || normalized === "yes";
+    },
     makeUrl() {
       if (this.form.sourceSubUrl === "" || this.form.clientType === "") {
         this.$message.error("订阅链接与客户端为必填项");
@@ -1484,17 +1500,21 @@ export default {
         if (param.get("sort")) {
           this.form.sort = param.get("sort") === 'true';
         }
-        if (param.get("use_dialer")) {
-          this.form.useDialer = param.get("use_dialer") === 'true';
+        const useDialerParam = this.getFirstParamValue(param, ["use_dialer", "useDialer"]);
+        if (useDialerParam !== "") {
+          this.form.useDialer = this.parseTruthyParam(useDialerParam);
         }
-        if (param.get("dialer_group_name")) {
-          this.form.dialerGroupName = param.get("dialer_group_name");
+        const dialerGroupNameParam = this.getFirstParamValue(param, ["dialer_group_name", "dialerGroupName"]);
+        if (dialerGroupNameParam !== "") {
+          this.form.dialerGroupName = dialerGroupNameParam;
         }
-        if (param.get("apply_dialer_to")) {
-          this.form.applyDialerTo = param.get("apply_dialer_to");
+        const applyDialerToParam = this.getFirstParamValue(param, ["apply_dialer_to", "applyDialerTo"]);
+        if (applyDialerToParam !== "") {
+          this.form.applyDialerTo = applyDialerToParam;
         }
-        if (param.get("proxy_providers")) {
-          this.form.proxyProviders = this.decodeProxyProvidersFromRequest(param.get("proxy_providers"));
+        const proxyProvidersParam = this.getFirstParamValue(param, ["proxy_providers", "proxy-providers", "proxyProviders"]);
+        if (proxyProvidersParam !== "") {
+          this.form.proxyProviders = this.decodeProxyProvidersFromRequest(proxyProvidersParam);
         }
         if (param.get("emoji")) {
           this.form.emoji = param.get("emoji") === 'true';
