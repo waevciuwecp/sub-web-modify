@@ -126,23 +126,57 @@
                       />
                     </el-form-item>
                     <el-form-item label="Providers:">
-                      <el-input
-                          v-model="form.proxyProviders"
-                          type="textarea"
-                          :autosize="{ minRows: 4, maxRows: 10 }"
-                          maxlength="12000"
-                          show-word-limit
-                          placeholder='proxy_providers JSON，例如 [{"name":"sub-dialer-provider-1","type":"http","url":"https://example.com/sub.yaml"}]'
-                      />
-                      <div style="margin-top: 6px; font-size: 12px; color: #909399;">
-                        使用 JSON 数组，每项至少包含 name 和 url。支持 http provider，可选 type/path/interval。
+                      <div style="margin-bottom: 8px; font-size: 12px; color: #909399;">
+                        按顺序添加：新增一条空记录 -> 填写 name/url -> 再新增下一条。
                       </div>
-                      <div style="margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap;">
-                        <el-button size="mini" type="primary" plain @click="applyDialerProvidersSample">填入示例</el-button>
-                        <el-button size="mini" type="success" plain @click="appendProxyProviderTemplate">追加模板</el-button>
-                        <el-button size="mini" type="warning" plain @click="formatProxyProvidersJson">格式化 JSON</el-button>
-                        <el-button size="mini" type="info" plain @click="validateProxyProvidersJson">校验 JSON</el-button>
-                        <el-button size="mini" @click="form.proxyProviders = ''">清空 Providers</el-button>
+                      <el-alert
+                          title="每条 provider 至少需要 name 和 url；type 默认 http。"
+                          type="info"
+                          :closable="false"
+                          show-icon
+                          style="margin-bottom: 10px"
+                      />
+                      <div
+                          v-for="(provider, index) in form.proxyProviderEntries"
+                          :key="'provider-' + index"
+                          style="border: 1px solid #ebeef5; border-radius: 6px; padding: 10px; margin-bottom: 10px;"
+                      >
+                        <el-row :gutter="8">
+                          <el-col :span="10">
+                            <el-input v-model.trim="provider.name" placeholder="name，例如 fantastic-Vultr"/>
+                          </el-col>
+                          <el-col :span="6">
+                            <el-input v-model.trim="provider.type" placeholder="type，默认 http"/>
+                          </el-col>
+                          <el-col :span="8" style="text-align: right;">
+                            <el-button
+                                size="mini"
+                                type="danger"
+                                plain
+                                :disabled="form.proxyProviderEntries.length === 1"
+                                @click="removeProxyProviderEntry(index)"
+                            >删除
+                            </el-button>
+                          </el-col>
+                        </el-row>
+                        <el-row :gutter="8" style="margin-top: 8px;">
+                          <el-col :span="24">
+                            <el-input v-model.trim="provider.url" placeholder="url，例如 https://example.com/sub.yaml"/>
+                          </el-col>
+                        </el-row>
+                        <el-row :gutter="8" style="margin-top: 8px;">
+                          <el-col :span="16">
+                            <el-input v-model.trim="provider.path" placeholder="可选 path，例如 ./proxy_provider/custom.yaml"/>
+                          </el-col>
+                          <el-col :span="8">
+                            <el-input v-model.trim="provider.interval" placeholder="可选 interval，例如 3600"/>
+                          </el-col>
+                        </el-row>
+                      </div>
+                      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <el-button size="mini" type="primary" plain @click="addProxyProviderEntry">新增一条 Provider</el-button>
+                        <el-button size="mini" type="success" plain @click="applyDialerProvidersSample">填入示例</el-button>
+                        <el-button size="mini" @click="clearProxyProviderEntries">清空 Providers</el-button>
                       </div>
                     </el-form-item>
                     <el-divider content-position="left">通用高级参数</el-divider>
@@ -1011,6 +1045,15 @@ export default {
         dialerGroupName: "dialer",
         applyDialerTo: "",
         proxyProviders: "",
+        proxyProviderEntries: [
+          {
+            name: "",
+            type: "http",
+            url: "",
+            path: "",
+            interval: ""
+          }
+        ],
         tpl: {
           surge: {
             doh: false // dns 查询是否使用 DoH
@@ -1160,10 +1203,40 @@ export default {
       this.$message.success("已切换到 Dialer LoadBalance 远程配置");
     },
     applyDialerProvidersSample() {
-      this.form.proxyProviders = '[{"name":"sub-dialer-provider-1","type":"http","url":"https://example.com/sub.yaml"},{"name":"relay-provider-1","type":"http","url":"https://example.com/relay.yaml"}]';
+      this.form.proxyProviderEntries = [
+        {name: "sub-dialer-provider-1", type: "http", url: "https://example.com/sub.yaml", path: "", interval: "3600"},
+        {name: "relay-provider-1", type: "http", url: "https://example.com/relay.yaml", path: "", interval: "3600"}
+      ];
+      this.syncProxyProvidersStringFromEntries();
     },
-    parseProxyProvidersJson() {
-      const content = this.form.proxyProviders.trim();
+    createEmptyProxyProviderEntry() {
+      return {
+        name: "",
+        type: "http",
+        url: "",
+        path: "",
+        interval: ""
+      };
+    },
+    addProxyProviderEntry() {
+      this.form.proxyProviderEntries.push(this.createEmptyProxyProviderEntry());
+    },
+    removeProxyProviderEntry(index) {
+      this.form.proxyProviderEntries.splice(index, 1);
+      if (this.form.proxyProviderEntries.length === 0) {
+        this.form.proxyProviderEntries.push(this.createEmptyProxyProviderEntry());
+      }
+      this.syncProxyProvidersStringFromEntries();
+    },
+    clearProxyProviderEntries() {
+      this.form.proxyProviderEntries = [this.createEmptyProxyProviderEntry()];
+      this.form.proxyProviders = "";
+    },
+    parseProxyProvidersJson(content = this.form.proxyProviders) {
+      if (typeof content !== "string") {
+        return null;
+      }
+      content = content.trim();
       if (content === "") {
         return [];
       }
@@ -1177,50 +1250,79 @@ export default {
         }
       }
     },
-    appendProxyProviderTemplate() {
+    syncProxyProviderEntriesFromProxyProvidersString() {
       const parsed = this.parseProxyProvidersJson();
       if (parsed === null || !Array.isArray(parsed)) {
-        this.$message.error("Providers JSON 格式不正确，无法追加模板");
-        return;
+        return false;
       }
-      parsed.push({
-        name: `dialer-provider-${parsed.length + 1}`,
-        type: "http",
-        url: "https://example.com/sub.yaml",
-        interval: 3600
-      });
-      this.form.proxyProviders = JSON.stringify(parsed, null, 2);
-      this.$message.success("已追加 provider 模板");
+      this.form.proxyProviderEntries = parsed.map(item => ({
+        name: typeof item.name === "string" ? item.name : "",
+        type: typeof item.type === "string" && item.type.trim() !== "" ? item.type : "http",
+        url: typeof item.url === "string" ? item.url : "",
+        path: typeof item.path === "string" ? item.path : "",
+        interval: item.interval === undefined || item.interval === null ? "" : String(item.interval)
+      }));
+      if (this.form.proxyProviderEntries.length === 0) {
+        this.form.proxyProviderEntries = [this.createEmptyProxyProviderEntry()];
+      }
+      return true;
     },
-    formatProxyProvidersJson() {
-      const parsed = this.parseProxyProvidersJson();
-      if (parsed === null || !Array.isArray(parsed)) {
-        this.$message.error("Providers JSON 不是合法数组");
-        return;
+    validateProxyProviderEntries() {
+      for (let i = 0; i < this.form.proxyProviderEntries.length; i++) {
+        const item = this.form.proxyProviderEntries[i];
+        const name = item.name.trim();
+        const type = item.type.trim();
+        const url = item.url.trim();
+        const path = item.path.trim();
+        const interval = item.interval.trim();
+        const hasData = name !== "" || url !== "" || path !== "" || interval !== "" || (type !== "" && type !== "http");
+
+        if (!hasData) {
+          continue;
+        }
+        if (name === "" || url === "") {
+          this.$message.error(`第 ${i + 1} 条 provider 需要同时填写 name 和 url`);
+          return false;
+        }
+        if (interval !== "") {
+          const parsed = parseInt(interval, 10);
+          if (Number.isNaN(parsed) || parsed <= 0) {
+            this.$message.error(`第 ${i + 1} 条 provider 的 interval 必须是正整数`);
+            return false;
+          }
+        }
       }
-      this.form.proxyProviders = JSON.stringify(parsed, null, 2);
-      this.$message.success("Providers JSON 已格式化");
+      return true;
     },
-    validateProxyProvidersJson() {
-      const parsed = this.parseProxyProvidersJson();
-      if (parsed === null || !Array.isArray(parsed)) {
-        this.$message.error("Providers JSON 不是合法数组");
-        return;
-      }
-      const invalid = parsed.find(
-          item =>
-              !item ||
-              typeof item !== "object" ||
-              typeof item.name !== "string" ||
-              item.name.trim() === "" ||
-              typeof item.url !== "string" ||
-              item.url.trim() === ""
-      );
-      if (invalid) {
-        this.$message.error("存在无效 provider 项：每项至少需要 name 和 url");
-        return;
-      }
-      this.$message.success(`Providers 校验通过，共 ${parsed.length} 项`);
+    buildProxyProvidersArrayFromEntries() {
+      return this.form.proxyProviderEntries
+          .map(item => ({
+            name: item.name.trim(),
+            type: item.type.trim(),
+            url: item.url.trim(),
+            path: item.path.trim(),
+            interval: item.interval.trim()
+          }))
+          .filter(item => item.name !== "" && item.url !== "")
+          .map(item => {
+            const provider = {
+              name: item.name,
+              type: item.type === "" ? "http" : item.type,
+              url: item.url
+            };
+            if (item.path !== "") {
+              provider.path = item.path;
+            }
+            if (item.interval !== "") {
+              provider.interval = parseInt(item.interval, 10);
+            }
+            return provider;
+          });
+    },
+    syncProxyProvidersStringFromEntries() {
+      const providers = this.buildProxyProvidersArrayFromEntries();
+      this.form.proxyProviders = providers.length === 0 ? "" : JSON.stringify(providers);
+      return providers;
     },
     encodeProxyProvidersForRequest(proxyProviders) {
       return encodeURIComponent(proxyProviders);
@@ -1249,6 +1351,10 @@ export default {
         this.$message.error("订阅链接与客户端为必填项");
         return false;
       }
+      if (!this.validateProxyProviderEntries()) {
+        return false;
+      }
+      this.syncProxyProvidersStringFromEntries();
       let backend =
           this.form.customBackend === ""
               ? defaultBackend
@@ -1515,6 +1621,10 @@ export default {
         const proxyProvidersParam = this.getFirstParamValue(param, ["proxy_providers", "proxy-providers", "proxyProviders"]);
         if (proxyProvidersParam !== "") {
           this.form.proxyProviders = this.decodeProxyProvidersFromRequest(proxyProvidersParam);
+          if (!this.syncProxyProviderEntriesFromProxyProvidersString()) {
+            this.$message.error("解析 proxy_providers 失败，请检查参数格式");
+            return;
+          }
         }
         if (param.get("emoji")) {
           this.form.emoji = param.get("emoji") === 'true';
@@ -1554,6 +1664,10 @@ export default {
       })();
     },
     renderPost() {
+      if (!this.validateProxyProviderEntries()) {
+        return null;
+      }
+      this.syncProxyProvidersStringFromEntries();
       let data = new FormData();
       data.append("target", encodeURIComponent(this.form.clientType));
       data.append("url", encodeURIComponent(this.form.sourceSubUrl));
@@ -1586,6 +1700,10 @@ export default {
       }
       this.loading2 = true;
       let data = this.renderPost();
+      if (!data) {
+        this.loading2 = false;
+        return false;
+      }
       data.append("sortscript", encodeURIComponent(this.uploadScript));
       data.append("filterscript", encodeURIComponent(this.uploadFilter));
       this.$axios
