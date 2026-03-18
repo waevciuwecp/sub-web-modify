@@ -62,6 +62,12 @@ http://192.168.10.1:8090/?backend=https://url.v1.mk
 ```
 
 ### 7) Digest 短链接 / 二维码优化
-- Digest 模式会优先使用 `deflateRaw + base64url` 打包 `q`，并与普通 `base64url` 结果比较，自动选择更短的 `q`。
-- Digest 模式下，`filename` 不再写入 `q`，只通过 `a` 传递，避免重复参数导致链接变长。
+- Digest 模式会优先使用紧凑模式 `m=1`（短键 + 布尔位图 `bt/bf`）组织 `q`，并在以下候选中自动选择最短结果：
+  - `deflateRaw + base64url(紧凑 q)`
+  - `base64url(紧凑 q)`
+  - `deflateRaw + base64url(完整 q)`
+  - `base64url(完整 q)`
+- 常用短键映射：`t->target`、`u->url`、`c->config`、`i->include`、`e->exclude`、`r->rename`、`d->dev_id`、`iv->interval`、`p->proxy_providers`、`v->ver`、`dg->dialer_group_name`、`da->apply_dialer_to`。
+- Digest 模式下，`filename` 不再写入 `q`，只通过 `a` 传递，避免重复参数导致链接变长；全量参数名仍支持手工编辑。
 - 从 URL 解析时，若路径是 `/digest` 且存在 `a`，前端会优先使用 `a` 回填“订阅命名”。
+- 二维码生成使用更低纠错等级（`L`）与更大尺寸（按 URL 长度自适应），提升长链接的扫码成功率。

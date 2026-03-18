@@ -560,12 +560,52 @@ const scriptConfigSample = process.env.VUE_APP_SCRIPT_CONFIG
 const filterConfigSample = process.env.VUE_APP_FILTER_CONFIG
 const defaultBackend = process.env.VUE_APP_SUBCONVERTER_DEFAULT_BACKEND
 const configUploadBackend = process.env.VUE_APP_CONFIG_UPLOAD_BACKEND + '/sub.php'
+const defaultRemoteConfig = "https://raw.githubusercontent.com/YaoYinYing/AnyRelay/main/config/nodnsleak.ini"
 const basicVideo = process.env.VUE_APP_BASIC_VIDEO
 const advancedVideo = process.env.VUE_APP_ADVANCED_VIDEO
 const tgBotLink = process.env.VUE_APP_BOT_LINK
 const yglink = process.env.VUE_APP_YOUTUBE_LINK
 const bzlink = process.env.VUE_APP_BILIBILI_LINK
 const downld = 'http://' + window.location.host + '/download.html'
+const digestCompactAliasByLongKey = Object.freeze({
+  target: "t",
+  url: "u",
+  config: "c",
+  include: "i",
+  exclude: "e",
+  rename: "r",
+  dev_id: "d",
+  interval: "iv",
+  proxy_providers: "p",
+  ver: "v",
+  dialer_group_name: "dg",
+  apply_dialer_to: "da"
+});
+const digestCompactAliasByShortKey = Object.freeze(
+  Object.entries(digestCompactAliasByLongKey).reduce((acc, [longKey, shortKey]) => {
+    acc[shortKey] = longKey;
+    return acc;
+  }, {})
+);
+const digestCompactBoolSpecs = Object.freeze([
+  {key: "insert", defaultValue: false},
+  {key: "emoji", defaultValue: true},
+  {key: "list", defaultValue: false},
+  {key: "xudp", defaultValue: false},
+  {key: "udp", defaultValue: false},
+  {key: "tfo", defaultValue: false},
+  {key: "expand", defaultValue: true},
+  {key: "scv", defaultValue: false},
+  {key: "fdn", defaultValue: false},
+  {key: "append_type", defaultValue: false},
+  {key: "tls13", defaultValue: false},
+  {key: "sort", defaultValue: false},
+  {key: "use_dialer", defaultValue: false},
+  {key: "new_name", defaultValue: true},
+  {key: "surge.doh", defaultValue: false},
+  {key: "clash.doh", defaultValue: false},
+  {key: "singbox.ipv6", defaultValue: false}
+]);
 export default {
   data() {
     return {
@@ -1058,7 +1098,7 @@ export default {
         sourceSubUrl: "",
         clientType: "",
         customBackend: this.getUrlParam() == "" ? "https://psub-oreo.yaoyy.moe" : this.getUrlParam(),
-        remoteConfig: "https://raw.githubusercontent.com/YaoYinYing/AnyRelay/main/config/nodnsleak.ini",
+        remoteConfig: defaultRemoteConfig,
         excludeRemarks: "",
         includeRemarks: "",
         filename: "",
@@ -1208,10 +1248,11 @@ export default {
         return;
       }
       try {
+        const qrWidth = targetUrl.length > 900 ? 460 : (targetUrl.length > 650 ? 420 : 360);
         this.qrCodeImageData = await QRCode.toDataURL(targetUrl, {
-          width: 320,
-          margin: 2,
-          errorCorrectionLevel: "M"
+          width: qrWidth,
+          margin: 1,
+          errorCorrectionLevel: "L"
         });
         this.qrCodeSourceUrl = targetUrl;
         this.dialogQrCodeVisible = true;
@@ -1418,6 +1459,46 @@ export default {
       const normalized = value.trim().toLowerCase();
       return normalized === "true" || normalized === "1" || normalized === "yes";
     },
+    parseBooleanParam(value) {
+      if (typeof value !== "string") {
+        return null;
+      }
+      const normalized = value.trim().toLowerCase();
+      if (normalized === "true" || normalized === "1" || normalized === "yes" || normalized === "on") {
+        return true;
+      }
+      if (normalized === "false" || normalized === "0" || normalized === "no" || normalized === "off") {
+        return false;
+      }
+      return null;
+    },
+    parseBase36Mask(value) {
+      if (typeof value !== "string" || value.trim() === "") {
+        return 0;
+      }
+      let acc = 0;
+      const text = value.trim().toLowerCase();
+      for (let i = 0; i < text.length; i++) {
+        const ch = text[i];
+        let digit = -1;
+        if (ch >= "0" && ch <= "9") {
+          digit = ch.charCodeAt(0) - 48;
+        } else if (ch >= "a" && ch <= "z") {
+          digit = ch.charCodeAt(0) - 87;
+        } else {
+          return 0;
+        }
+        acc = acc * 36 + digit;
+      }
+      return acc;
+    },
+    isCompactDigestMode(rawMode) {
+      if (typeof rawMode !== "string") {
+        return false;
+      }
+      const mode = rawMode.trim().toLowerCase();
+      return mode === "1" || mode === "true" || mode === "yes";
+    },
     looksLikeQueryString(query) {
       if (typeof query !== "string" || query.trim() === "" || query.includes("\0")) {
         return false;
@@ -1530,6 +1611,102 @@ export default {
       }
       return "";
     },
+    buildCompactDigestQueryFromSubQuery(subQuery) {
+      const fullParam = new URLSearchParams(subQuery);
+      const compactParam = new URLSearchParams();
+      compactParam.set("m", "1");
+
+      let trueMask = 0;
+      let falseMask = 0;
+      const boolIndexMap = digestCompactBoolSpecs.reduce((acc, item, index) => {
+        acc[item.key] = index;
+        return acc;
+      }, {});
+
+      for (const [key, value] of fullParam.entries()) {
+        if (key === "filename") {
+          continue;
+        }
+
+        if (Object.prototype.hasOwnProperty.call(boolIndexMap, key)) {
+          const parsedBool = this.parseBooleanParam(value);
+          if (parsedBool === null) {
+            continue;
+          }
+          const idx = boolIndexMap[key];
+          const defaultValue = digestCompactBoolSpecs[idx].defaultValue;
+          if (parsedBool === defaultValue) {
+            continue;
+          }
+          if (parsedBool) {
+            trueMask |= (1 << idx);
+          } else {
+            falseMask |= (1 << idx);
+          }
+          continue;
+        }
+
+        if (key === "config" && value === defaultRemoteConfig) {
+          continue;
+        }
+
+        const aliasKey = digestCompactAliasByLongKey[key] || key;
+        compactParam.set(aliasKey, value);
+      }
+
+      if (trueMask !== 0) {
+        compactParam.set("bt", trueMask.toString(36));
+      }
+      if (falseMask !== 0) {
+        compactParam.set("bf", falseMask.toString(36));
+      }
+      return compactParam.toString();
+    },
+    expandCompactDigestParams(param, options = {}) {
+      const applyDefaults = options.applyDefaults !== false;
+      const expanded = new URLSearchParams();
+      const compactMode = this.isCompactDigestMode(param.get("m"));
+      if (!compactMode) {
+        for (const [key, value] of param.entries()) {
+          expanded.set(key, value);
+        }
+        return expanded;
+      }
+
+      for (const [key, value] of param.entries()) {
+        if (key === "m" || key === "bt" || key === "bf") {
+          continue;
+        }
+        const longKey = digestCompactAliasByShortKey[key] || key;
+        expanded.set(longKey, value);
+      }
+
+      const trueMask = this.parseBase36Mask(param.get("bt") || "");
+      const falseMask = this.parseBase36Mask(param.get("bf") || "");
+      for (let i = 0; i < digestCompactBoolSpecs.length; i++) {
+        const spec = digestCompactBoolSpecs[i];
+        if (expanded.has(spec.key)) {
+          continue;
+        }
+        const bit = 1 << i;
+        if ((trueMask & bit) !== 0) {
+          expanded.set(spec.key, "true");
+          continue;
+        }
+        if ((falseMask & bit) !== 0) {
+          expanded.set(spec.key, "false");
+          continue;
+        }
+        if (applyDefaults) {
+          expanded.set(spec.key, spec.defaultValue ? "true" : "false");
+        }
+      }
+
+      if (applyDefaults && !expanded.has("config")) {
+        expanded.set("config", defaultRemoteConfig);
+      }
+      return expanded;
+    },
     mergeDigestQueryParams(rawParam) {
       const mergedParam = new URLSearchParams();
       const packedQuery = rawParam.get("q");
@@ -1537,14 +1714,16 @@ export default {
         const unpackedQuery = this.decodePackedDigestQuery(packedQuery);
         if (unpackedQuery !== "") {
           const digestParam = new URLSearchParams(unpackedQuery.startsWith("?") ? unpackedQuery.slice(1) : unpackedQuery);
-          for (const [key, value] of digestParam.entries()) {
+          const expandedDigestParam = this.expandCompactDigestParams(digestParam, {applyDefaults: true});
+          for (const [key, value] of expandedDigestParam.entries()) {
             if (key !== "q") {
               mergedParam.set(key, value);
             }
           }
         }
       }
-      for (const [key, value] of rawParam.entries()) {
+      const expandedRawParam = this.expandCompactDigestParams(rawParam, {applyDefaults: false});
+      for (const [key, value] of expandedRawParam.entries()) {
         if (key !== "q") {
           mergedParam.set(key, value);
         }
@@ -1636,13 +1815,26 @@ export default {
       if (this.form.filename.trim() !== "") {
         digestParams.push("a=" + encodeURIComponent(this.form.filename.trim()));
       }
-      const plainPackedQuery = this.encodeUtf8ToBase64Url(subQuery);
-      const compressedPackedQuery = this.encodeUtf8ToDeflateRawBase64Url(subQuery);
-      let packedQuery = plainPackedQuery;
-      if (compressedPackedQuery !== "" && (packedQuery === "" || compressedPackedQuery.length < packedQuery.length)) {
-        packedQuery = compressedPackedQuery;
+
+      const compactQuery = this.buildCompactDigestQueryFromSubQuery(subQuery);
+      const candidateQueryList = compactQuery !== "" ? [compactQuery, subQuery] : [subQuery];
+      let packedQuery = "";
+      for (const queryText of candidateQueryList) {
+        if (!queryText) {
+          continue;
+        }
+        const compressedPackedQuery = this.encodeUtf8ToDeflateRawBase64Url(queryText);
+        if (compressedPackedQuery !== "" && (packedQuery === "" || compressedPackedQuery.length < packedQuery.length)) {
+          packedQuery = compressedPackedQuery;
+        }
+        const plainPackedQuery = this.encodeUtf8ToBase64Url(queryText);
+        if (plainPackedQuery !== "" && (packedQuery === "" || plainPackedQuery.length < packedQuery.length)) {
+          packedQuery = plainPackedQuery;
+        }
       }
-      if (packedQuery === "") {
+      if (packedQuery === "" && compactQuery !== "") {
+        packedQuery = compactQuery;
+      } else if (packedQuery === "") {
         packedQuery = subQuery;
       }
       digestParams.push("q=" + encodeURIComponent(packedQuery));
