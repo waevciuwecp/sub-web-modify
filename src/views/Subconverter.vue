@@ -1,21 +1,43 @@
 <template>
-  <div>
-    <el-row style="margin-top: 10px">
+  <div class="subconverter-page">
+    <el-row class="page-row">
       <el-col>
-        <el-card>
-          <div slot="header">
-            <svg-icon class="gayhub" icon-class="github" style="float:left" @click="goToProject"/>
-            <svg-icon class="dianbao" icon-class="telegram" style="float:left;margin-left: 10px"
+        <el-card class="converter-card" shadow="never">
+          <div slot="header" class="converter-header">
+            <div class="header-side">
+              <svg-icon class="header-icon gayhub" icon-class="github" @click="goToProject"/>
+              <svg-icon class="header-icon dianbao" icon-class="telegram"
                       @click="gotoTgChannel"/>
-            <svg-icon class="bilibili" icon-class="bilibili" style="float:right;margin-left:10px"
+            </div>
+            <div class="header-title">
+              <div class="header-title-cn">订阅转换实验台</div>
+              <div class="header-title-en">Academic Subscription Transformer</div>
+            </div>
+            <div class="header-side header-side-right">
+              <svg-icon class="header-icon bilibili" icon-class="bilibili"
                       @click="gotoBiliBili"/>
-            <svg-icon class="youguan" icon-class="youtube" style="float:right;margin-left:10px" @click="gotoYouTuBe"/>
-            <svg-icon class="channel" icon-class="telegram" style="float:right;margin-left: 10px"
+              <svg-icon class="header-icon youguan" icon-class="youtube" @click="gotoYouTuBe"/>
+              <svg-icon class="header-icon channel" icon-class="telegram"
                       @click="gotoTgChannel"/>
-            <div style="text-align:center;font-size:15px">订 阅 转 换</div>
+            </div>
+          </div>
+          <div class="info-band">
+            <div class="info-band-item">
+              <span class="info-label">接口模式</span>
+              <strong>{{ form.useDigest ? "Digest /digest" : "Classic /sub" }}</strong>
+            </div>
+            <div class="info-band-item">
+              <span class="info-label">后端状态</span>
+              <strong>{{ backendVersion || "待检测" }}</strong>
+            </div>
+            <div class="info-band-item">
+              <span class="info-label">学术提示</span>
+              <strong>订阅命名即 Alias（digest `a`）</strong>
+            </div>
           </div>
           <el-container>
-            <el-form :model="form" label-width="80px" label-position="left" style="width: 100%">
+            <el-form :model="form" label-width="80px" label-position="left" class="primary-form">
+              <el-divider content-position="left" class="section-divider">基础参数</el-divider>
               <el-form-item label="订阅链接:">
                 <el-input
                     v-model="form.sourceSubUrl"
@@ -63,7 +85,7 @@
                   </el-option-group>
                 </el-select>
               </el-form-item>
-              <el-form-item label-width="80px" style="margin-top: -8px">
+              <el-form-item label-width="80px" class="remote-preset-item">
                 <el-button
                     size="mini"
                     plain
@@ -72,6 +94,13 @@
                 >使用 Dialer 远程配置（默认）
                 </el-button>
               </el-form-item>
+              <el-alert
+                  class="dense-alert"
+                  title="Digest 默认启用：参数会打包到 q；订阅命名会同时作为 digest alias(a)。"
+                  type="info"
+                  :closable="false"
+                  show-icon
+              />
               <el-form-item label-width="0px">
                 <el-collapse>
                   <el-collapse-item>
@@ -280,6 +309,7 @@
                   <i id="yejian" class="el-icon-moon"></i>
                 </el-button>
               </el-divider>
+              <el-divider content-position="left" class="section-divider">输出结果</el-divider>
               <el-form-item label="定制订阅:">
                 <el-input class="copy-content" disabled v-model="customSubUrl">
                   <el-button
@@ -1879,4 +1909,209 @@ export default {
   }
 };
 </script>
+
+<style lang="scss">
+.subconverter-page {
+  --paper: #f5f7f2;
+  --ink: #182028;
+  --muted-ink: #506070;
+  --panel: #fbfcfa;
+  --panel-border: #d5dde4;
+  --accent: #1f6b63;
+  --accent-soft: #d9ebe7;
+  --accent-strong: #184d47;
+  --shadow: 0 10px 28px rgba(22, 40, 56, 0.08);
+
+  min-height: 100vh;
+  padding: 18px 12px 36px;
+  color: var(--ink);
+  background:
+      radial-gradient(circle at 18% 12%, rgba(31, 107, 99, 0.14), transparent 42%),
+      radial-gradient(circle at 84% 2%, rgba(31, 107, 99, 0.09), transparent 33%),
+      linear-gradient(160deg, #edf2ef 0%, #f6f8f4 48%, #eef3ef 100%);
+  font-family: "IBM Plex Sans", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+.subconverter-page .page-row {
+  margin-top: 0;
+}
+
+.subconverter-page .converter-card {
+  border: 1px solid var(--panel-border);
+  border-radius: 18px;
+  overflow: hidden;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.subconverter-page .converter-card > .el-card__header {
+  background: linear-gradient(145deg, #f9fbf8 0%, #edf3ef 100%);
+  border-bottom: 1px solid var(--panel-border);
+  padding: 14px 18px;
+}
+
+.subconverter-page .converter-card > .el-card__body {
+  padding: 14px 18px 20px;
+}
+
+.subconverter-page .converter-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.subconverter-page .header-side {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 84px;
+}
+
+.subconverter-page .header-side-right {
+  justify-content: flex-end;
+}
+
+.subconverter-page .header-title {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+}
+
+.subconverter-page .header-title-cn {
+  letter-spacing: 0.08em;
+  font-size: 18px;
+  font-weight: 700;
+  color: #1c2935;
+  font-family: "Source Serif 4", "Noto Serif SC", "Songti SC", serif;
+}
+
+.subconverter-page .header-title-en {
+  margin-top: 2px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: var(--muted-ink);
+  text-transform: uppercase;
+}
+
+.subconverter-page .header-icon {
+  font-size: 22px;
+  color: var(--accent-strong);
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.subconverter-page .header-icon:hover {
+  transform: translateY(-1px);
+  color: var(--accent);
+}
+
+.subconverter-page .info-band {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0 0 14px;
+}
+
+.subconverter-page .info-band-item {
+  background: #f2f7f4;
+  border: 1px solid #d8e4de;
+  border-radius: 12px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.subconverter-page .info-label {
+  font-size: 11px;
+  color: var(--muted-ink);
+  letter-spacing: 0.04em;
+}
+
+.subconverter-page .info-band-item strong {
+  color: #17343a;
+  font-size: 13px;
+}
+
+.subconverter-page .primary-form .el-form-item {
+  margin-bottom: 12px;
+}
+
+.subconverter-page .primary-form .el-form-item__label {
+  color: #273645;
+  font-weight: 600;
+}
+
+.subconverter-page .section-divider {
+  margin: 10px 0 14px;
+}
+
+.subconverter-page .section-divider .el-divider__text {
+  background: var(--panel);
+  color: #244454;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.subconverter-page .dense-alert {
+  margin: 2px 0 12px;
+}
+
+.subconverter-page .remote-preset-item {
+  margin-top: -4px;
+}
+
+.subconverter-page .copy-content .el-input__inner {
+  font-family: "JetBrains Mono", "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+}
+
+.subconverter-page .el-input__inner,
+.subconverter-page .el-textarea__inner,
+.subconverter-page .el-select .el-input__inner {
+  border-radius: 10px;
+}
+
+.subconverter-page .el-button {
+  border-radius: 10px;
+}
+
+.subconverter-page .el-dialog {
+  border-radius: 14px;
+}
+
+.subconverter-page .el-dialog__header {
+  border-bottom: 1px solid #e2e8ee;
+  padding-bottom: 12px;
+}
+
+@media (max-width: 900px) {
+  .subconverter-page {
+    padding: 10px 8px 24px;
+  }
+
+  .subconverter-page .converter-card > .el-card__header,
+  .subconverter-page .converter-card > .el-card__body {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .subconverter-page .header-title-cn {
+    font-size: 16px;
+  }
+
+  .subconverter-page .header-title-en {
+    font-size: 11px;
+  }
+
+  .subconverter-page .info-band {
+    grid-template-columns: 1fr;
+  }
+
+  .subconverter-page .header-side {
+    min-width: auto;
+    gap: 8px;
+  }
+}
+</style>
 
