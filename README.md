@@ -67,7 +67,7 @@ http://192.168.10.1:8090/?backend=https://url.v1.mk
 - `singbox_ver` / `singbox.ver` / `ver`（当 `target=singbox`）
 
 其中 `use_dialer` 支持 `true/1/yes`。
-`singbox_ver` 在前端按后端最新约束校验为 `1.11.x - 1.14.x`。
+`singbox_ver` 在前端按后端最新约束校验为 `1.12.x - 1.14.x`。
 
 ### 7) proxy_providers 编码说明
 - 前端按标准 `encodeURIComponent` 发送 `proxy_providers`

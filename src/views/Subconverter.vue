@@ -277,7 +277,7 @@
                     <el-form-item v-if="form.clientType === 'singbox'" label="Sing版本:">
                       <el-input
                           v-model.trim="form.singboxVersion"
-                          placeholder="支持 1.11.x - 1.14.x，默认 1.11.0"
+                          placeholder="支持 1.12.x - 1.14.x，默认 1.12.0"
                       />
                     </el-form-item>
                     <el-form-item class="eldiy" label-width="0px">
@@ -623,6 +623,9 @@ const tgBotLink = process.env.VUE_APP_BOT_LINK
 const yglink = process.env.VUE_APP_YOUTUBE_LINK
 const bzlink = process.env.VUE_APP_BILIBILI_LINK
 const downld = 'http://' + window.location.host + '/download.html'
+const singboxDefaultVersion = "1.12.0"
+const singboxMinVersion = "1.12.0"
+const singboxMaxExclusiveVersion = "1.15.0"
 const digestCompactAliasByLongKey = Object.freeze({
   target: "t",
   url: "u",
@@ -1180,7 +1183,7 @@ export default {
         useDialer: false,
         dialerGroupName: "dialer",
         applyDialerTo: "",
-        singboxVersion: "1.11.0",
+        singboxVersion: singboxDefaultVersion,
         proxyProviders: "",
         proxyProviderEntries: [
           {
@@ -1965,16 +1968,16 @@ export default {
       return 0;
     },
     isSupportedSingboxVersion(version) {
-      return this.compareVersions(version, "1.11.0") >= 0 && this.compareVersions(version, "1.15.0") < 0;
+      return this.compareVersions(version, singboxMinVersion) >= 0 && this.compareVersions(version, singboxMaxExclusiveVersion) < 0;
     },
     validateSingboxVersionForCurrentTarget(needNotify = false) {
       if (this.form.clientType !== "singbox") {
         return true;
       }
-      const normalized = this.normalizeVersionInput(this.form.singboxVersion || "1.11.0");
+      const normalized = this.normalizeVersionInput(this.form.singboxVersion || singboxDefaultVersion);
       if (normalized === "" || !this.isSupportedSingboxVersion(normalized)) {
         if (needNotify) {
-          this.notifyError("Sing-box 版本仅支持 1.11.x - 1.14.x");
+          this.notifyError("Sing-box 版本仅支持 1.12.x - 1.14.x");
         }
         return false;
       }
@@ -2318,7 +2321,7 @@ export default {
         queryParts.push("singbox.ipv6=1");
       }
       if (this.form.clientType === "singbox") {
-        const normalizedSingboxVersion = this.normalizeVersionInput(this.form.singboxVersion || "1.11.0");
+        const normalizedSingboxVersion = this.normalizeVersionInput(this.form.singboxVersion || singboxDefaultVersion);
         if (normalizedSingboxVersion !== "") {
           queryParts.push("singbox_ver=" + encodeURIComponent(normalizedSingboxVersion));
         }
@@ -2470,9 +2473,9 @@ export default {
           const singboxVersionParam = this.getFirstParamValue(param, ["singbox_ver", "singbox.ver", "ver"]);
           if (singboxVersionParam !== "") {
             const normalized = this.normalizeVersionInput(singboxVersionParam);
-            this.form.singboxVersion = normalized === "" ? "1.11.0" : normalized;
+            this.form.singboxVersion = normalized === "" ? singboxDefaultVersion : normalized;
           } else {
-            this.form.singboxVersion = "1.11.0";
+            this.form.singboxVersion = singboxDefaultVersion;
           }
         }
         if (param.get("url")) {
