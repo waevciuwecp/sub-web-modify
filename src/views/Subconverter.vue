@@ -10,8 +10,8 @@
                       @click="gotoTgChannel"/>
             </div>
             <div class="header-title">
-              <div class="header-title-cn">订阅转换实验台</div>
-              <div class="header-title-en">Academic Subscription Transformer</div>
+              <div class="header-title-cn">Awesome idea front</div>
+              <div class="header-title-en">Elegant Academic Subscription Studio</div>
             </div>
             <div class="header-side header-side-right">
               <svg-icon class="header-icon bilibili" icon-class="bilibili"
@@ -85,6 +85,18 @@
                   </el-option-group>
                 </el-select>
               </el-form-item>
+              <el-form-item label="订阅命名:">
+                <el-input
+                    v-model="form.filename"
+                    placeholder="默认 default.yaml；Digest 模式会同步为 alias(a)"
+                />
+              </el-form-item>
+              <el-form-item label="更新间隔:">
+                <el-input
+                    v-model="form.interval"
+                    placeholder="单位为天，默认 2"
+                />
+              </el-form-item>
               <el-form-item label-width="80px" class="remote-preset-item">
                 <el-button
                     size="mini"
@@ -144,57 +156,77 @@
                       />
                     </el-form-item>
                     <el-form-item label="Providers:">
-                      <div style="margin-bottom: 8px; font-size: 12px; color: #909399;">
-                        按顺序添加：新增一条空记录 -> 填写 name/url -> 再新增下一条。
-                      </div>
-                      <el-alert
-                          title="每条 provider 至少需要 name 和 url；type 默认 http。"
-                          type="info"
-                          :closable="false"
-                          show-icon
-                          style="margin-bottom: 10px"
-                      />
-                      <div
-                          v-for="(provider, index) in form.proxyProviderEntries"
-                          :key="'provider-' + index"
-                          style="border: 1px solid #ebeef5; border-radius: 6px; padding: 10px; margin-bottom: 10px;"
-                      >
-                        <el-row :gutter="8">
-                          <el-col :span="10">
-                            <el-input v-model.trim="provider.name" placeholder="name，例如 fantastic-Vultr"/>
-                          </el-col>
-                          <el-col :span="6">
-                            <el-input v-model.trim="provider.type" placeholder="type，默认 http"/>
-                          </el-col>
-                          <el-col :span="8" style="text-align: right;">
-                            <el-button
-                                size="mini"
-                                type="danger"
-                                plain
-                                :disabled="form.proxyProviderEntries.length === 1"
-                                @click="removeProxyProviderEntry(index)"
-                            >删除
-                            </el-button>
-                          </el-col>
-                        </el-row>
-                        <el-row :gutter="8" style="margin-top: 8px;">
-                          <el-col :span="24">
-                            <el-input v-model.trim="provider.url" placeholder="url，例如 https://example.com/sub.yaml"/>
-                          </el-col>
-                        </el-row>
-                        <el-row :gutter="8" style="margin-top: 8px;">
-                          <el-col :span="16">
-                            <el-input v-model.trim="provider.path" placeholder="可选 path，例如 ./proxy_provider/custom.yaml"/>
-                          </el-col>
-                          <el-col :span="8">
-                            <el-input v-model.trim="provider.interval" placeholder="可选 interval，例如 3600"/>
-                          </el-col>
-                        </el-row>
-                      </div>
-                      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                        <el-button size="mini" type="primary" plain @click="addProxyProviderEntry">新增一条 Provider</el-button>
-                        <el-button size="mini" type="success" plain @click="applyDialerProvidersSample">填入示例</el-button>
-                        <el-button size="mini" @click="clearProxyProviderEntries">清空 Providers</el-button>
+                      <div class="provider-grid">
+                        <div class="provider-column">
+                          <div class="provider-guide-tip">
+                            按顺序添加：新增空记录 -> 填写 name/url -> 再新增下一条。
+                          </div>
+                          <el-alert
+                              title="每条 provider 至少需要 name 和 url；type 默认 http。"
+                              type="info"
+                              :closable="false"
+                              show-icon
+                              style="margin-bottom: 10px"
+                          />
+                          <div
+                              v-for="(provider, index) in form.proxyProviderEntries"
+                              :key="'provider-' + index"
+                              class="provider-card"
+                          >
+                            <el-row :gutter="8">
+                              <el-col :span="10">
+                                <el-input v-model.trim="provider.name" placeholder="name，例如 fantastic-Vultr"/>
+                              </el-col>
+                              <el-col :span="6">
+                                <el-input v-model.trim="provider.type" placeholder="type，默认 http"/>
+                              </el-col>
+                              <el-col :span="8" style="text-align: right;">
+                                <el-button
+                                    size="mini"
+                                    type="danger"
+                                    plain
+                                    :disabled="form.proxyProviderEntries.length === 1"
+                                    @click="removeProxyProviderEntry(index)"
+                                >删除
+                                </el-button>
+                              </el-col>
+                            </el-row>
+                            <el-row :gutter="8" style="margin-top: 8px;">
+                              <el-col :span="24">
+                                <el-input v-model.trim="provider.url" placeholder="url，例如 https://example.com/sub.yaml"/>
+                              </el-col>
+                            </el-row>
+                            <el-row :gutter="8" style="margin-top: 8px;">
+                              <el-col :span="16">
+                                <el-input v-model.trim="provider.path" placeholder="可选 path，例如 ./proxy_provider/custom.yaml"/>
+                              </el-col>
+                              <el-col :span="8">
+                                <el-input v-model.trim="provider.interval" placeholder="可选 interval，例如 3600"/>
+                              </el-col>
+                            </el-row>
+                          </div>
+                          <div class="provider-actions">
+                            <el-button size="mini" type="primary" plain @click="addProxyProviderEntry">新增一条 Provider</el-button>
+                            <el-button size="mini" type="success" plain @click="applyDialerProvidersSample">填入示例</el-button>
+                            <el-button size="mini" @click="clearProxyProviderEntries">清空 Providers</el-button>
+                          </div>
+                        </div>
+                        <div class="provider-column provider-json-column">
+                          <div class="provider-json-title">Native JSON Input (Preview)</div>
+                          <el-input
+                              v-model="proxyProvidersJsonInput"
+                              type="textarea"
+                              :autosize="{ minRows: 12, maxRows: 20 }"
+                              placeholder='[{"name":"dialer-a","type":"http","url":"https://example.com/a.yaml","interval":3600}]'
+                          />
+                          <div class="provider-actions">
+                            <el-button size="mini" type="primary" @click="verifyProxyProvidersJsonWriteback">验证并回填</el-button>
+                            <el-button size="mini" plain @click="refreshProxyProvidersEditorFromEntries">刷新预览</el-button>
+                          </div>
+                          <div class="provider-json-tip">
+                            点击“验证并回填”会进行 JSON 校验，并将结果写回左侧引导输入区。
+                          </div>
+                        </div>
                       </div>
                     </el-form-item>
                     <el-divider content-position="left">通用高级参数</el-divider>
@@ -216,13 +248,6 @@
                     </el-form-item>
                     <el-form-item label="远程设备:">
                       <el-input v-model="form.devid" placeholder="用于设置QuantumultX的远程设备ID"/>
-                    </el-form-item>
-                    <el-form-item label="更新间隔:">
-                      <el-input v-model="form.interval" placeholder="返用于设置托管配置更新间隔，单位为天"/>
-                    </el-form-item>
-                    <el-form-item label="订阅命名:">
-                      <el-input v-model="form.filename"
-                                placeholder="返回的订阅文件名，可以在支持文件名的客户端中显示出来"/>
                     </el-form-item>
                     <el-form-item class="eldiy" label-width="0px">
                       <el-row type="flex">
@@ -1101,10 +1126,10 @@ export default {
         remoteConfig: defaultRemoteConfig,
         excludeRemarks: "",
         includeRemarks: "",
-        filename: "",
+        filename: "default.yaml",
         rename: "",
         devid: "",
-        interval: "",
+        interval: "2",
         emoji: true,
         nodeList: false,
         extraset: false,
@@ -1160,16 +1185,18 @@ export default {
       myBot: tgBotLink,
       filterConfig: filterConfigSample,
       scriptConfig: scriptConfigSample,
-      sampleConfig: remoteConfigSample
+      sampleConfig: remoteConfigSample,
+      proxyProvidersJsonInput: ""
     };
   },
   created() {
-    document.title = "Subconverter-Frontend/AnyRelay";
+    document.title = "Awesome idea front";
     this.isPC = this.$getOS().isPc;
   },
   mounted() {
     // this.tanchuang();
     this.form.clientType = "clash";
+    this.refreshProxyProvidersEditorFromEntries();
     this.getBackendVersion();
     this.anhei();
     let lightMedia = window.matchMedia('(prefers-color-scheme: light)');
@@ -1183,6 +1210,15 @@ export default {
       lightMedia.addEventListener('change', callback);
       darkMedia.addEventListener('change', callback);
     } //监听系统主题，自动切换！
+  },
+  watch: {
+    "form.proxyProviderEntries": {
+      deep: true,
+      handler() {
+        this.syncProxyProvidersStringFromEntries();
+        this.refreshProxyProvidersEditorFromEntries();
+      }
+    }
   },
   methods: {
     selectChanged() {
@@ -1321,6 +1357,7 @@ export default {
         {name: "relay-provider-1", type: "http", url: "https://example.com/relay.yaml", path: "", interval: "3600"}
       ];
       this.syncProxyProvidersStringFromEntries();
+      this.refreshProxyProvidersEditorFromEntries();
     },
     createEmptyProxyProviderEntry() {
       return {
@@ -1344,6 +1381,83 @@ export default {
     clearProxyProviderEntries() {
       this.form.proxyProviderEntries = [this.createEmptyProxyProviderEntry()];
       this.form.proxyProviders = "";
+      this.refreshProxyProvidersEditorFromEntries();
+    },
+    normalizeProxyProviderEntry(item, index = 0) {
+      if (!item || typeof item !== "object" || Array.isArray(item)) {
+        throw new Error(`第 ${index + 1} 条 provider 必须是对象`);
+      }
+      const name = typeof item.name === "string" ? item.name.trim() : "";
+      const url = typeof item.url === "string" ? item.url.trim() : "";
+      const type = typeof item.type === "string" && item.type.trim() !== "" ? item.type.trim() : "http";
+      const path = typeof item.path === "string" ? item.path.trim() : "";
+      const rawInterval = item.interval === undefined || item.interval === null ? "" : String(item.interval).trim();
+      let interval = "";
+      if (rawInterval !== "") {
+        const parsedInterval = parseInt(rawInterval, 10);
+        if (Number.isNaN(parsedInterval) || parsedInterval <= 0) {
+          throw new Error(`第 ${index + 1} 条 provider 的 interval 必须是正整数`);
+        }
+        interval = String(parsedInterval);
+      }
+      const hasData = name !== "" || url !== "" || path !== "" || interval !== "" || type !== "http";
+      if (!hasData) {
+        return null;
+      }
+      if (name === "" || url === "") {
+        throw new Error(`第 ${index + 1} 条 provider 需要同时填写 name 和 url`);
+      }
+      return {
+        name,
+        type,
+        url,
+        path,
+        interval
+      };
+    },
+    normalizeProxyProviderEntries(entries, options = {}) {
+      if (!Array.isArray(entries)) {
+        throw new Error("proxy providers 必须是 JSON 数组");
+      }
+      const includeEmpty = options.includeEmpty === true;
+      const normalized = [];
+      entries.forEach((item, index) => {
+        const normalizedItem = this.normalizeProxyProviderEntry(item, index);
+        if (normalizedItem) {
+          normalized.push(normalizedItem);
+        }
+      });
+      if (normalized.length === 0 && includeEmpty) {
+        return [this.createEmptyProxyProviderEntry()];
+      }
+      return normalized;
+    },
+    refreshProxyProvidersEditorFromEntries() {
+      const providers = this.buildProxyProvidersArrayFromEntries();
+      this.proxyProvidersJsonInput = JSON.stringify(providers, null, 2);
+    },
+    verifyProxyProvidersJsonWriteback() {
+      const rawContent = typeof this.proxyProvidersJsonInput === "string" ? this.proxyProvidersJsonInput.trim() : "";
+      if (rawContent === "") {
+        this.clearProxyProviderEntries();
+        this.$message.success("JSON 为空，已清空 Providers");
+        return;
+      }
+      let parsed;
+      try {
+        parsed = JSON.parse(rawContent);
+      } catch (error) {
+        this.$message.error("JSON 解析失败，请检查语法");
+        return;
+      }
+      try {
+        this.form.proxyProviderEntries = this.normalizeProxyProviderEntries(parsed, {includeEmpty: true});
+        this.syncProxyProvidersStringFromEntries();
+        this.refreshProxyProvidersEditorFromEntries();
+        this.$message.success("JSON 校验通过，已回填到引导输入区");
+      } catch (error) {
+        this.$message.error(error.message || "JSON 校验失败");
+      }
     },
     parseProxyProvidersJson(content = this.form.proxyProviders) {
       if (typeof content !== "string") {
@@ -1368,69 +1482,44 @@ export default {
       if (parsed === null || !Array.isArray(parsed)) {
         return false;
       }
-      this.form.proxyProviderEntries = parsed.map(item => ({
-        name: typeof item.name === "string" ? item.name : "",
-        type: typeof item.type === "string" && item.type.trim() !== "" ? item.type : "http",
-        url: typeof item.url === "string" ? item.url : "",
-        path: typeof item.path === "string" ? item.path : "",
-        interval: item.interval === undefined || item.interval === null ? "" : String(item.interval)
-      }));
-      if (this.form.proxyProviderEntries.length === 0) {
-        this.form.proxyProviderEntries = [this.createEmptyProxyProviderEntry()];
+      try {
+        this.form.proxyProviderEntries = this.normalizeProxyProviderEntries(parsed, {includeEmpty: true});
+        this.refreshProxyProvidersEditorFromEntries();
+        return true;
+      } catch (error) {
+        return false;
       }
-      return true;
     },
     validateProxyProviderEntries() {
-      for (let i = 0; i < this.form.proxyProviderEntries.length; i++) {
-        const item = this.form.proxyProviderEntries[i];
-        const name = item.name.trim();
-        const type = item.type.trim();
-        const url = item.url.trim();
-        const path = item.path.trim();
-        const interval = item.interval.trim();
-        const hasData = name !== "" || url !== "" || path !== "" || interval !== "" || (type !== "" && type !== "http");
-
-        if (!hasData) {
-          continue;
-        }
-        if (name === "" || url === "") {
-          this.$message.error(`第 ${i + 1} 条 provider 需要同时填写 name 和 url`);
-          return false;
-        }
-        if (interval !== "") {
-          const parsed = parseInt(interval, 10);
-          if (Number.isNaN(parsed) || parsed <= 0) {
-            this.$message.error(`第 ${i + 1} 条 provider 的 interval 必须是正整数`);
-            return false;
-          }
-        }
+      try {
+        this.normalizeProxyProviderEntries(this.form.proxyProviderEntries, {includeEmpty: true});
+        return true;
+      } catch (error) {
+        this.$message.error(error.message || "Providers 参数不合法");
+        return false;
       }
-      return true;
     },
     buildProxyProvidersArrayFromEntries() {
-      return this.form.proxyProviderEntries
-          .map(item => ({
-            name: item.name.trim(),
-            type: item.type.trim(),
-            url: item.url.trim(),
-            path: item.path.trim(),
-            interval: item.interval.trim()
-          }))
-          .filter(item => item.name !== "" && item.url !== "")
-          .map(item => {
-            const provider = {
-              name: item.name,
-              type: item.type === "" ? "http" : item.type,
-              url: item.url
-            };
-            if (item.path !== "") {
-              provider.path = item.path;
-            }
-            if (item.interval !== "") {
-              provider.interval = parseInt(item.interval, 10);
-            }
-            return provider;
-          });
+      let normalized = [];
+      try {
+        normalized = this.normalizeProxyProviderEntries(this.form.proxyProviderEntries);
+      } catch (error) {
+        normalized = [];
+      }
+      return normalized.map(item => {
+        const provider = {
+          name: item.name,
+          type: item.type === "" ? "http" : item.type,
+          url: item.url
+        };
+        if (item.path !== "") {
+          provider.path = item.path;
+        }
+        if (item.interval !== "") {
+          provider.interval = parseInt(item.interval, 10);
+        }
+        return provider;
+      });
     },
     syncProxyProvidersStringFromEntries() {
       const providers = this.buildProxyProvidersArrayFromEntries();
@@ -2136,46 +2225,47 @@ export default {
 
 <style lang="scss">
 .subconverter-page {
-  --paper: #f5f7f2;
-  --ink: #182028;
-  --muted-ink: #506070;
-  --panel: #fbfcfa;
-  --panel-border: #d5dde4;
-  --accent: #1f6b63;
-  --accent-soft: #d9ebe7;
-  --accent-strong: #184d47;
-  --shadow: 0 10px 28px rgba(22, 40, 56, 0.08);
-
+  --paper: #f3f2ed;
+  --ink: #1b2430;
+  --muted-ink: #5d6776;
+  --panel: #fcfbf8;
+  --panel-border: #dad6cc;
+  --accent: #2f5a73;
+  --accent-soft: #dfe9ef;
+  --accent-strong: #1f4257;
+  --shadow: 0 14px 34px rgba(28, 33, 44, 0.09);
   min-height: 100vh;
-  padding: 18px 12px 36px;
+  padding: 24px 14px 40px;
   color: var(--ink);
   background:
-      radial-gradient(circle at 18% 12%, rgba(31, 107, 99, 0.14), transparent 42%),
-      radial-gradient(circle at 84% 2%, rgba(31, 107, 99, 0.09), transparent 33%),
-      linear-gradient(160deg, #edf2ef 0%, #f6f8f4 48%, #eef3ef 100%);
+      radial-gradient(circle at 12% 10%, rgba(47, 90, 115, 0.16), transparent 40%),
+      radial-gradient(circle at 94% 2%, rgba(47, 90, 115, 0.1), transparent 34%),
+      linear-gradient(158deg, #ebeae4 0%, #f5f2ea 45%, #f0eee7 100%);
   font-family: "IBM Plex Sans", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
 }
 
 .subconverter-page .page-row {
-  margin-top: 0;
+  max-width: 1180px;
+  margin: 0 auto;
 }
 
 .subconverter-page .converter-card {
   border: 1px solid var(--panel-border);
-  border-radius: 18px;
+  border-radius: 20px;
   overflow: hidden;
   background: var(--panel);
   box-shadow: var(--shadow);
+  animation: cardRise 380ms ease-out;
 }
 
 .subconverter-page .converter-card > .el-card__header {
-  background: linear-gradient(145deg, #f9fbf8 0%, #edf3ef 100%);
+  background: linear-gradient(148deg, #f9f8f4 0%, #ede9df 100%);
   border-bottom: 1px solid var(--panel-border);
-  padding: 14px 18px;
+  padding: 16px 22px;
 }
 
 .subconverter-page .converter-card > .el-card__body {
-  padding: 14px 18px 20px;
+  padding: 18px 22px 24px;
 }
 
 .subconverter-page .converter-header {
@@ -2203,17 +2293,17 @@ export default {
 }
 
 .subconverter-page .header-title-cn {
-  letter-spacing: 0.08em;
-  font-size: 18px;
+  letter-spacing: 0.03em;
+  font-size: 28px;
   font-weight: 700;
-  color: #1c2935;
+  color: #213446;
   font-family: "Source Serif 4", "Noto Serif SC", "Songti SC", serif;
 }
 
 .subconverter-page .header-title-en {
-  margin-top: 2px;
-  font-size: 12px;
-  letter-spacing: 0.08em;
+  margin-top: 4px;
+  font-size: 11px;
+  letter-spacing: 0.14em;
   color: var(--muted-ink);
   text-transform: uppercase;
 }
@@ -2232,15 +2322,15 @@ export default {
 .subconverter-page .info-band {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-  margin: 0 0 14px;
+  gap: 12px;
+  margin: 0 0 18px;
 }
 
 .subconverter-page .info-band-item {
-  background: #f2f7f4;
-  border: 1px solid #d8e4de;
+  background: #f3f1eb;
+  border: 1px solid #dfdbd0;
   border-radius: 12px;
-  padding: 10px 12px;
+  padding: 12px 14px;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -2253,28 +2343,28 @@ export default {
 }
 
 .subconverter-page .info-band-item strong {
-  color: #17343a;
+  color: #1f3f53;
   font-size: 13px;
 }
 
 .subconverter-page .primary-form .el-form-item {
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 
 .subconverter-page .primary-form .el-form-item__label {
-  color: #273645;
+  color: #2c3b4a;
   font-weight: 600;
 }
 
 .subconverter-page .section-divider {
-  margin: 10px 0 14px;
+  margin: 10px 0 16px;
 }
 
 .subconverter-page .section-divider .el-divider__text {
   background: var(--panel);
-  color: #244454;
+  color: #2c4658;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.08em;
 }
 
 .subconverter-page .dense-alert {
@@ -2290,10 +2380,72 @@ export default {
   font-size: 12px;
 }
 
+.subconverter-page .provider-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.subconverter-page .provider-column {
+  border: 1px solid #dfdbd1;
+  border-radius: 12px;
+  background: #f9f8f4;
+  padding: 10px;
+}
+
+.subconverter-page .provider-guide-tip,
+.subconverter-page .provider-json-tip {
+  font-size: 12px;
+  color: #647080;
+  line-height: 1.5;
+}
+
+.subconverter-page .provider-guide-tip {
+  margin-bottom: 8px;
+}
+
+.subconverter-page .provider-card {
+  border: 1px solid #e5e1d8;
+  border-radius: 10px;
+  background: #fffefb;
+  padding: 10px;
+  margin-bottom: 10px;
+}
+
+.subconverter-page .provider-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.subconverter-page .provider-json-column .el-textarea__inner {
+  font-family: "JetBrains Mono", "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.subconverter-page .provider-json-title {
+  font-size: 12px;
+  color: #2d4a5e;
+  margin-bottom: 8px;
+  letter-spacing: 0.04em;
+  font-weight: 700;
+}
+
+.subconverter-page .provider-json-tip {
+  margin-top: 8px;
+}
+
 .subconverter-page .el-input__inner,
 .subconverter-page .el-textarea__inner,
 .subconverter-page .el-select .el-input__inner {
   border-radius: 10px;
+}
+
+.subconverter-page .el-input__inner:focus,
+.subconverter-page .el-textarea__inner:focus {
+  border-color: #7294ab;
 }
 
 .subconverter-page .el-button {
@@ -2309,6 +2461,17 @@ export default {
   padding-bottom: 12px;
 }
 
+@keyframes cardRise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @media (max-width: 900px) {
   .subconverter-page {
     padding: 10px 8px 24px;
@@ -2321,7 +2484,7 @@ export default {
   }
 
   .subconverter-page .header-title-cn {
-    font-size: 16px;
+    font-size: 22px;
   }
 
   .subconverter-page .header-title-en {
@@ -2335,6 +2498,10 @@ export default {
   .subconverter-page .header-side {
     min-width: auto;
     gap: 8px;
+  }
+
+  .subconverter-page .provider-grid {
+    grid-template-columns: 1fr;
   }
 }
 </style>
