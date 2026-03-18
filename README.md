@@ -60,3 +60,8 @@ http://192.168.10.1:8090/?backend=https://url.v1.mk
   {"name":"provider-b","type":"http","url":"https://example.com/b.yaml","interval":3600}
 ]
 ```
+
+### 7) Digest 短链接 / 二维码优化
+- Digest 模式会优先使用 `deflateRaw + base64url` 打包 `q`，并与普通 `base64url` 结果比较，自动选择更短的 `q`。
+- Digest 模式下，`filename` 不再写入 `q`，只通过 `a` 传递，避免重复参数导致链接变长。
+- 从 URL 解析时，若路径是 `/digest` 且存在 `a`，前端会优先使用 `a` 回填“订阅命名”。

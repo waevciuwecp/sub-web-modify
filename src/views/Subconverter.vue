@@ -1476,12 +1476,32 @@ export default {
       };
       return tryInflate(pako.inflate) || tryInflate(pako.inflateRaw) || "";
     },
+    encodeBytesToBase64Url(bytes) {
+      try {
+        let binary = "";
+        const chunkSize = 0x8000;
+        for (let i = 0; i < bytes.length; i += chunkSize) {
+          binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
+        }
+        return window.btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+      } catch (e) {
+        return "";
+      }
+    },
     encodeUtf8ToBase64Url(content) {
       try {
         const utf8Binary = encodeURIComponent(content).replace(/%([0-9A-F]{2})/g, (_, p1) => String.fromCharCode(parseInt(p1, 16)));
         return window.btoa(utf8Binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
       } catch (e) {
         return content;
+      }
+    },
+    encodeUtf8ToDeflateRawBase64Url(content) {
+      try {
+        const compressed = pako.deflateRaw(content, {level: 9});
+        return this.encodeBytesToBase64Url(compressed);
+      } catch (e) {
+        return "";
       }
     },
     decodePackedDigestQuery(rawPackedQuery) {
@@ -1531,7 +1551,8 @@ export default {
       }
       return mergedParam;
     },
-    buildSubQueryParts(sourceSub) {
+    buildSubQueryParts(sourceSub, options = {}) {
+      const includeFilename = options.includeFilename !== false;
       let queryParts = [];
       if (this.form.clientType.includes("&")) {
         const clientTypeParts = this.form.clientType.split("&");
@@ -1555,7 +1576,7 @@ export default {
       if (this.form.includeRemarks !== "") {
         queryParts.push("include=" + encodeURIComponent(this.form.includeRemarks));
       }
-      if (this.form.filename !== "") {
+      if (includeFilename && this.form.filename !== "") {
         queryParts.push("filename=" + encodeURIComponent(this.form.filename));
       }
       if (this.form.rename !== "") {
@@ -1615,7 +1636,15 @@ export default {
       if (this.form.filename.trim() !== "") {
         digestParams.push("a=" + encodeURIComponent(this.form.filename.trim()));
       }
-      const packedQuery = this.encodeUtf8ToBase64Url(subQuery);
+      const plainPackedQuery = this.encodeUtf8ToBase64Url(subQuery);
+      const compressedPackedQuery = this.encodeUtf8ToDeflateRawBase64Url(subQuery);
+      let packedQuery = plainPackedQuery;
+      if (compressedPackedQuery !== "" && (packedQuery === "" || compressedPackedQuery.length < packedQuery.length)) {
+        packedQuery = compressedPackedQuery;
+      }
+      if (packedQuery === "") {
+        packedQuery = subQuery;
+      }
       digestParams.push("q=" + encodeURIComponent(packedQuery));
       return backend + "/digest?" + digestParams.join("&");
     },
@@ -1634,7 +1663,7 @@ export default {
               : this.form.customBackend;
       let sourceSub = this.form.sourceSubUrl;
       sourceSub = sourceSub.replace(/(\n|\r|\n\r)/g, "|");
-      const subQuery = this.buildSubQueryParts(sourceSub).join("&");
+      const subQuery = this.buildSubQueryParts(sourceSub, {includeFilename: !this.form.useDigest}).join("&");
       this.customSubUrl = this.form.useDigest ? this.buildDigestUrl(backend, subQuery) : backend + "/sub?" + subQuery;
       this.$copyText(this.customSubUrl);
       this.$message.success("定制订阅已复制到剪贴板");
@@ -1704,7 +1733,8 @@ export default {
         this.form.customBackend = url.origin
         const rawParam = new URLSearchParams(url.search);
         const aliasParam = rawParam.get("a");
-        if (url.pathname === "/digest") {
+        const isDigestPath = url.pathname === "/digest";
+        if (isDigestPath) {
           this.form.useDigest = true;
         } else if (url.pathname === "/sub") {
           this.form.useDigest = false;
@@ -1738,7 +1768,9 @@ export default {
         if (param.get("include")) {
           this.form.includeRemarks = param.get("include");
         }
-        if (param.get("filename")) {
+        if (isDigestPath && aliasParam) {
+          this.form.filename = aliasParam;
+        } else if (param.get("filename")) {
           this.form.filename = param.get("filename");
         } else if (aliasParam) {
           this.form.filename = aliasParam;
