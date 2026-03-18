@@ -41,12 +41,6 @@
                   <el-option v-for="(v, k) in options.customBackend" :key="k" :label="k" :value="v"></el-option>
                 </el-select>
               </el-form-item>
-              <el-form-item label="订阅别名:">
-                <el-input
-                    v-model="form.digestAlias"
-                    placeholder="用于 /digest 的 a 参数，仅用于备注识别"
-                />
-              </el-form-item>
               <el-form-item label="远程配置:">
                 <el-select
                     v-model="form.remoteConfig"
@@ -1045,7 +1039,6 @@ export default {
         nodeList: false,
         extraset: false,
         useDigest: true,
-        digestAlias: "",
         tls13: false,
         udp: false,
         xudp: false,
@@ -1589,8 +1582,8 @@ export default {
     },
     buildDigestUrl(backend, subQuery) {
       let digestParams = [];
-      if (this.form.digestAlias.trim() !== "") {
-        digestParams.push("a=" + encodeURIComponent(this.form.digestAlias.trim()));
+      if (this.form.filename.trim() !== "") {
+        digestParams.push("a=" + encodeURIComponent(this.form.filename.trim()));
       }
       const packedQuery = this.encodeUtf8ToBase64Url(subQuery);
       digestParams.push("q=" + encodeURIComponent(packedQuery));
@@ -1680,9 +1673,7 @@ export default {
         }
         this.form.customBackend = url.origin
         const rawParam = new URLSearchParams(url.search);
-        if (rawParam.get("a")) {
-          this.form.digestAlias = rawParam.get("a");
-        }
+        const aliasParam = rawParam.get("a");
         if (url.pathname === "/digest") {
           this.form.useDigest = true;
         } else if (url.pathname === "/sub") {
@@ -1719,6 +1710,8 @@ export default {
         }
         if (param.get("filename")) {
           this.form.filename = param.get("filename");
+        } else if (aliasParam) {
+          this.form.filename = aliasParam;
         }
         if (param.get("rename")) {
           this.form.rename = param.get("rename");
