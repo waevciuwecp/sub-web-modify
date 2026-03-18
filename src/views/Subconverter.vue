@@ -35,7 +35,7 @@
               <strong>订阅命名即 Alias（digest `a`）</strong>
             </div>
           </div>
-          <el-container>
+          <div class="form-shell">
             <el-form :model="form" label-width="80px" label-position="left" class="primary-form">
               <el-divider content-position="left" class="section-divider">基础参数</el-divider>
               <el-form-item label="订阅链接:">
@@ -390,7 +390,7 @@
                 </el-button>
               </el-form-item>
             </el-form>
-          </el-container>
+          </div>
         </el-card>
       </el-col>
     </el-row>
@@ -2246,6 +2246,11 @@ export default {
 .subconverter-page .page-row {
   max-width: 1180px;
   margin: 0 auto;
+}
+
+.subconverter-page .form-shell,
+.subconverter-page .primary-form {
+  width: 100%;
 }
 
 .subconverter-page .converter-card {
