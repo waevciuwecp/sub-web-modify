@@ -174,21 +174,10 @@
                           >
                             <el-row :gutter="8">
                               <el-col :span="10">
-                                <div
-                                    class="provider-name-input-wrap"
-                                    :class="{ 'is-highlight-active': provider.name.trim() !== '' && dialerProviderRegexList.length > 0 }"
-                                >
-                                  <div
-                                      v-if="provider.name.trim() !== '' && dialerProviderRegexList.length > 0"
-                                      class="provider-name-highlight-inline"
-                                      v-html="getProviderNameHighlightHtml(provider.name)"
-                                  ></div>
-                                  <el-input
-                                      class="provider-name-input"
-                                      v-model.trim="provider.name"
-                                      placeholder="name，例如 fantastic-Vultr"
-                                  />
-                                </div>
+                                <el-input
+                                    v-model.trim="provider.name"
+                                    placeholder="name，例如 fantastic-Vultr"
+                                />
                               </el-col>
                               <el-col :span="6">
                                 <el-input v-model.trim="provider.type" placeholder="type，默认 http"/>
@@ -226,18 +215,6 @@
                         </div>
                         <div class="provider-column provider-json-column">
                           <div class="provider-json-title">Native JSON Input (Preview)</div>
-                          <el-input
-                              class="provider-json-input"
-                              v-model="proxyProvidersJsonInput"
-                              type="textarea"
-                              :autosize="false"
-                              resize="none"
-                              placeholder='[{"name":"dialer-a","type":"http","url":"https://example.com/a.yaml","interval":3600}]'
-                          />
-                          <div class="provider-actions">
-                            <el-button size="mini" type="primary" @click="verifyProxyProvidersJsonWriteback">验证并回填</el-button>
-                            <el-button size="mini" plain @click="refreshProxyProvidersEditorFromEntries">刷新预览</el-button>
-                          </div>
                           <div class="provider-expression-hint" v-if="dialerProviderExpressionLoading">
                             正在预取远程 ini 并识别 Dialer Provider 表达式...
                           </div>
@@ -251,6 +228,25 @@
                           </div>
                           <div class="provider-expression-hint" v-else>
                             未在当前远程配置中识别到 Dialer Provider 表达式（select-use）。
+                          </div>
+                          <div class="provider-json-editor" :class="{ 'is-error': providerJsonPreviewState.hasError }">
+                            <pre
+                                ref="providerJsonOverlay"
+                                class="provider-json-overlay"
+                                v-html="providerJsonPreviewState.html"
+                            ></pre>
+                            <textarea
+                                ref="providerJsonTextarea"
+                                v-model="proxyProvidersJsonInput"
+                                class="provider-json-textarea"
+                                spellcheck="false"
+                                @scroll="syncProviderJsonOverlayScroll"
+                                placeholder='[{"name":"dialer-a","type":"http","url":"https://example.com/a.yaml","interval":3600}]'
+                            ></textarea>
+                          </div>
+                          <div class="provider-actions">
+                            <el-button size="mini" type="primary" @click="verifyProxyProvidersJsonWriteback">验证并回填</el-button>
+                            <el-button size="mini" plain @click="refreshProxyProvidersEditorFromEntries">刷新预览</el-button>
                           </div>
                           <div class="provider-json-tip">
                             点击“验证并回填”会进行 JSON 校验，并将结果写回左侧引导输入区。
@@ -1255,8 +1251,14 @@ export default {
     dialerProviderExpressionText() {
       return this.dialerProviderExpressions.join(" | ");
     },
+    providerJsonPreviewState() {
+      return this.buildProviderJsonPreviewState();
+    },
     providerPreviewStats() {
-      return this.getProviderPreviewStatsFromJsonPreview();
+      return {
+        total: this.providerJsonPreviewState.total,
+        matched: this.providerJsonPreviewState.matched
+      };
     }
   },
   watch: {
@@ -1272,6 +1274,11 @@ export default {
       handler() {
         this.scheduleDialerExpressionPrefetch();
       }
+    },
+    proxyProvidersJsonInput() {
+      this.$nextTick(() => {
+        this.syncProviderJsonOverlayScroll();
+      });
     }
   },
   methods: {
@@ -1593,18 +1600,23 @@ export default {
       }
       return html;
     },
-    getProviderNameHighlightHtml(name) {
-      const safeName = typeof name === "string" ? name : "";
-      const highlighted = this.renderHighlightedProviderName(safeName);
-      const escaped = this.escapeHtml(safeName);
-      return highlighted === escaped ? escaped : highlighted;
+    syncProviderJsonOverlayScroll() {
+      const textarea = this.$refs.providerJsonTextarea;
+      const overlay = this.$refs.providerJsonOverlay;
+      if (!textarea || !overlay) {
+        return;
+      }
+      overlay.scrollTop = textarea.scrollTop;
+      overlay.scrollLeft = textarea.scrollLeft;
     },
-    getProviderPreviewStatsFromJsonPreview() {
+    buildProviderJsonPreviewState() {
       const raw = typeof this.proxyProvidersJsonInput === "string" ? this.proxyProvidersJsonInput.trim() : "";
       if (raw === "") {
         return {
+          html: "&nbsp;",
           total: 0,
-          matched: 0
+          matched: 0,
+          hasError: false
         };
       }
       let parsed;
@@ -1612,36 +1624,51 @@ export default {
         parsed = JSON.parse(raw);
       } catch (error) {
         return {
+          html: this.escapeHtml(this.proxyProvidersJsonInput),
           total: 0,
-          matched: 0
+          matched: 0,
+          hasError: true
         };
       }
       let total = 0;
       let matched = 0;
-      const scan = (value) => {
+      const nameTokens = [];
+      const tokenize = (value) => {
         if (Array.isArray(value)) {
-          value.forEach(item => scan(item));
-          return;
+          return value.map(item => tokenize(item));
         }
         if (!value || typeof value !== "object") {
-          return;
+          return value;
         }
+        const result = {};
         Object.keys(value).forEach(key => {
           const fieldValue = value[key];
           if (key === "name" && typeof fieldValue === "string") {
+            const highlighted = this.renderHighlightedProviderName(fieldValue);
             total += 1;
-            if (this.findMatchedRangesInProviderName(fieldValue).length > 0) {
+            if (highlighted !== this.escapeHtml(fieldValue)) {
               matched += 1;
             }
+            const token = `__DIALER_PROVIDER_TOKEN_${nameTokens.length}__`;
+            nameTokens.push(highlighted);
+            result[key] = token;
           } else {
-            scan(fieldValue);
+            result[key] = tokenize(fieldValue);
           }
         });
+        return result;
       };
-      scan(parsed);
+      const tokenized = tokenize(parsed);
+      let html = this.escapeHtml(JSON.stringify(tokenized, null, 2));
+      html = html.replace(/&quot;__DIALER_PROVIDER_TOKEN_(\d+)__&quot;/g, (token, indexText) => {
+        const index = parseInt(indexText, 10);
+        return nameTokens[index] === undefined ? token : `&quot;${nameTokens[index]}&quot;`;
+      });
       return {
+        html,
         total,
-        matched
+        matched,
+        hasError: false
       };
     },
     applyDialerProvidersSample() {
@@ -2765,58 +2792,60 @@ export default {
   margin-top: 8px;
 }
 
-.subconverter-page .provider-name-input-wrap {
+.subconverter-page .provider-json-editor {
   position: relative;
-}
-
-.subconverter-page .provider-name-highlight-inline {
-  position: absolute;
-  z-index: 3;
-  left: 1px;
-  right: 1px;
-  top: 1px;
-  bottom: 1px;
-  padding: 0 15px;
-  display: flex;
-  align-items: center;
-  pointer-events: none;
-  border-radius: 10px;
-  font-size: 14px;
-  line-height: 1;
-  color: #253646;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.subconverter-page .provider-name-input-wrap.is-highlight-active .provider-name-input .el-input__inner {
-  color: transparent !important;
-  caret-color: #1f3650;
-}
-
-.subconverter-page .provider-name-input-wrap.is-highlight-active .provider-name-input .el-input__inner::selection {
-  background: rgba(114, 148, 171, 0.28);
-  color: transparent;
-}
-
-.subconverter-page .provider-json-input {
   flex: 1;
-  display: flex;
-  flex-direction: column;
   min-height: 220px;
 }
 
-.subconverter-page .provider-json-input .el-textarea {
-  flex: 1;
-  display: flex;
-}
-
-.subconverter-page .provider-json-column .el-textarea__inner {
+.subconverter-page .provider-json-overlay {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  overflow: auto;
+  padding: 10px 12px;
+  border: 1px solid #d8e0e8;
+  border-radius: 10px;
+  background: #f5f8fb;
+  color: #2f4050;
   font-family: "JetBrains Mono", "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
   font-size: 12px;
   line-height: 1.5;
-  height: 100% !important;
-  min-height: 220px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  pointer-events: none;
+}
+
+.subconverter-page .provider-json-textarea {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d8e0e8;
+  border-radius: 10px;
+  resize: none;
+  background: transparent;
+  color: transparent;
+  caret-color: #2f4f68;
+  font-family: "JetBrains Mono", "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  outline: none;
+}
+
+.subconverter-page .provider-json-textarea::placeholder {
+  color: #7e92a6;
+}
+
+.subconverter-page .provider-json-textarea::selection {
+  background: rgba(126, 174, 208, 0.35);
+  color: transparent;
+}
+
+.subconverter-page .provider-json-editor.is-error .provider-json-overlay,
+.subconverter-page .provider-json-editor.is-error .provider-json-textarea {
+  border-color: #b85f6c;
 }
 
 .subconverter-page .provider-json-title {
@@ -2832,7 +2861,7 @@ export default {
 }
 
 .subconverter-page .provider-expression-hint {
-  margin-top: 8px;
+  margin: 0 0 8px;
   font-size: 12px;
   line-height: 1.5;
   color: #5f7486;
@@ -2982,14 +3011,6 @@ body.dark-mode .subconverter-page .provider-expression-hint {
   color: #9db4c8;
 }
 
-body.dark-mode .subconverter-page .provider-name-highlight-inline {
-  color: #d6e5f2;
-}
-
-body.dark-mode .subconverter-page .provider-name-input-wrap.is-highlight-active .provider-name-input .el-input__inner {
-  caret-color: #d8e9f6;
-}
-
 body.dark-mode .subconverter-page .provider-expression-error {
   color: #f08a97;
 }
@@ -3003,6 +3024,21 @@ body.dark-mode .subconverter-page .provider-expression-code {
 body.dark-mode .subconverter-page .provider-name-match {
   background: #ecc97a;
   color: #2a1f08;
+}
+
+body.dark-mode .subconverter-page .provider-json-overlay {
+  background: #172631;
+  border-color: #3d566a;
+  color: #d8e6f2;
+}
+
+body.dark-mode .subconverter-page .provider-json-textarea {
+  border-color: #3d566a;
+  caret-color: #e8f2fa;
+}
+
+body.dark-mode .subconverter-page .provider-json-textarea::placeholder {
+  color: #8ca5ba;
 }
 
 body.dark-mode .subconverter-page .el-alert {
