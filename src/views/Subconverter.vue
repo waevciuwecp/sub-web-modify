@@ -1240,15 +1240,18 @@ export default {
     dialerProviderExpressionText() {
       return this.dialerProviderExpressions.join(" | ");
     },
+    proxyProvidersPreviewState() {
+      return this.buildProxyProvidersPreviewState();
+    },
     providerPreviewStats() {
-      const previewState = this.buildProxyProvidersPreviewState();
+      const previewState = this.proxyProvidersPreviewState;
       return {
         total: previewState.totalNames,
         matched: previewState.matchedNames
       };
     },
     proxyProvidersHighlightedPreview() {
-      return this.buildProxyProvidersPreviewState().html;
+      return this.proxyProvidersPreviewState.html;
     }
   },
   watch: {
