@@ -174,7 +174,21 @@
                           >
                             <el-row :gutter="8">
                               <el-col :span="10">
-                                <el-input v-model.trim="provider.name" placeholder="name，例如 fantastic-Vultr"/>
+                                <div
+                                    class="provider-name-input-wrap"
+                                    :class="{ 'is-highlight-active': provider.name.trim() !== '' && dialerProviderRegexList.length > 0 }"
+                                >
+                                  <div
+                                      v-if="provider.name.trim() !== '' && dialerProviderRegexList.length > 0"
+                                      class="provider-name-highlight-inline"
+                                      v-html="getProviderNameHighlightHtml(provider.name)"
+                                  ></div>
+                                  <el-input
+                                      class="provider-name-input"
+                                      v-model.trim="provider.name"
+                                      placeholder="name，例如 fantastic-Vultr"
+                                  />
+                                </div>
                               </el-col>
                               <el-col :span="6">
                                 <el-input v-model.trim="provider.type" placeholder="type，默认 http"/>
@@ -188,21 +202,6 @@
                                     @click="removeProxyProviderEntry(index)"
                                 >删除
                                 </el-button>
-                              </el-col>
-                            </el-row>
-                            <el-row v-if="provider.name.trim() !== ''" style="margin-top: 6px;">
-                              <el-col :span="24">
-                                <div
-                                    v-if="dialerProviderExpressions.length > 0"
-                                    class="provider-name-highlight-preview"
-                                    v-html="getProviderNameHighlightHtml(provider.name)"
-                                ></div>
-                                <div
-                                    v-else-if="dialerProviderExpressionLoading"
-                                    class="provider-name-highlight-preview provider-name-highlight-muted"
-                                >
-                                  正在识别表达式...
-                                </div>
                               </el-col>
                             </el-row>
                             <el-row :gutter="8" style="margin-top: 8px;">
@@ -1598,10 +1597,7 @@ export default {
       const safeName = typeof name === "string" ? name : "";
       const highlighted = this.renderHighlightedProviderName(safeName);
       const escaped = this.escapeHtml(safeName);
-      if (highlighted === escaped) {
-        return `<span class="provider-name-no-match">${escaped}</span>`;
-      }
-      return highlighted;
+      return highlighted === escaped ? escaped : highlighted;
     },
     getProviderPreviewStatsFromJsonPreview() {
       const raw = typeof this.proxyProvidersJsonInput === "string" ? this.proxyProvidersJsonInput.trim() : "";
@@ -2769,19 +2765,38 @@ export default {
   margin-top: 8px;
 }
 
-.subconverter-page .provider-name-highlight-preview {
-  font-size: 12px;
-  color: #4a5e71;
-  line-height: 1.4;
-  word-break: break-all;
+.subconverter-page .provider-name-input-wrap {
+  position: relative;
 }
 
-.subconverter-page .provider-name-highlight-muted {
-  color: #7f90a0;
+.subconverter-page .provider-name-highlight-inline {
+  position: absolute;
+  z-index: 3;
+  left: 1px;
+  right: 1px;
+  top: 1px;
+  bottom: 1px;
+  padding: 0 15px;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+  border-radius: 10px;
+  font-size: 14px;
+  line-height: 1;
+  color: #253646;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.subconverter-page .provider-name-no-match {
-  color: #6f7f8f;
+.subconverter-page .provider-name-input-wrap.is-highlight-active .provider-name-input .el-input__inner {
+  color: transparent !important;
+  caret-color: #1f3650;
+}
+
+.subconverter-page .provider-name-input-wrap.is-highlight-active .provider-name-input .el-input__inner::selection {
+  background: rgba(114, 148, 171, 0.28);
+  color: transparent;
 }
 
 .subconverter-page .provider-json-input {
@@ -2967,16 +2982,12 @@ body.dark-mode .subconverter-page .provider-expression-hint {
   color: #9db4c8;
 }
 
-body.dark-mode .subconverter-page .provider-name-highlight-preview {
-  color: #9eb6ca;
+body.dark-mode .subconverter-page .provider-name-highlight-inline {
+  color: #d6e5f2;
 }
 
-body.dark-mode .subconverter-page .provider-name-highlight-muted {
-  color: #8399ab;
-}
-
-body.dark-mode .subconverter-page .provider-name-no-match {
-  color: #8ea5b9;
+body.dark-mode .subconverter-page .provider-name-input-wrap.is-highlight-active .provider-name-input .el-input__inner {
+  caret-color: #d8e9f6;
 }
 
 body.dark-mode .subconverter-page .provider-expression-error {
