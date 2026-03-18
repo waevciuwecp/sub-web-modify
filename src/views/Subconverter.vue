@@ -127,7 +127,7 @@
                     </template>
                     <el-divider content-position="left">Dialer Proxy Providers</el-divider>
                     <el-alert
-                        title="Dialer 仅对 Clash / ClashR 目标生效，默认使用 Dialer 配置，可按需切换 Dialer LoadBalance"
+                        title="Dialer 对 Clash / ClashR / Sing-box 目标生效，默认使用 Dialer 配置，可按需切换 Dialer LoadBalance"
                         type="info"
                         :closable="false"
                         show-icon
@@ -273,6 +273,12 @@
                     </el-form-item>
                     <el-form-item label="远程设备:">
                       <el-input v-model="form.devid" placeholder="用于设置QuantumultX的远程设备ID"/>
+                    </el-form-item>
+                    <el-form-item v-if="form.clientType === 'singbox'" label="Sing版本:">
+                      <el-input
+                          v-model.trim="form.singboxVersion"
+                          placeholder="支持 1.11.x - 1.14.x，默认 1.11.0"
+                      />
                     </el-form-item>
                     <el-form-item class="eldiy" label-width="0px">
                       <el-row type="flex">
@@ -628,6 +634,7 @@ const digestCompactAliasByLongKey = Object.freeze({
   interval: "iv",
   proxy_providers: "p",
   ver: "v",
+  singbox_ver: "sv",
   dialer_group_name: "dg",
   apply_dialer_to: "da"
 });
@@ -1173,6 +1180,7 @@ export default {
         useDialer: false,
         dialerGroupName: "dialer",
         applyDialerTo: "",
+        singboxVersion: "1.11.0",
         proxyProviders: "",
         proxyProviderEntries: [
           {
@@ -1924,6 +1932,55 @@ export default {
       }
       return null;
     },
+    normalizeVersionInput(value) {
+      if (typeof value !== "string") {
+        return "";
+      }
+      let normalized = value.trim();
+      if (normalized === "") {
+        return "";
+      }
+      if (normalized[0] === "v" || normalized[0] === "V") {
+        normalized = normalized.slice(1);
+      }
+      if (!/^[0-9]+(\.[0-9]+){0,2}$/.test(normalized)) {
+        return "";
+      }
+      return normalized;
+    },
+    compareVersions(left, right) {
+      const leftParts = String(left).split(".").map(item => parseInt(item, 10));
+      const rightParts = String(right).split(".").map(item => parseInt(item, 10));
+      const maxLen = Math.max(leftParts.length, rightParts.length);
+      for (let i = 0; i < maxLen; i++) {
+        const l = Number.isNaN(leftParts[i]) ? 0 : (leftParts[i] || 0);
+        const r = Number.isNaN(rightParts[i]) ? 0 : (rightParts[i] || 0);
+        if (l < r) {
+          return -1;
+        }
+        if (l > r) {
+          return 1;
+        }
+      }
+      return 0;
+    },
+    isSupportedSingboxVersion(version) {
+      return this.compareVersions(version, "1.11.0") >= 0 && this.compareVersions(version, "1.15.0") < 0;
+    },
+    validateSingboxVersionForCurrentTarget(needNotify = false) {
+      if (this.form.clientType !== "singbox") {
+        return true;
+      }
+      const normalized = this.normalizeVersionInput(this.form.singboxVersion || "1.11.0");
+      if (normalized === "" || !this.isSupportedSingboxVersion(normalized)) {
+        if (needNotify) {
+          this.notifyError("Sing-box 版本仅支持 1.11.x - 1.14.x");
+        }
+        return false;
+      }
+      this.form.singboxVersion = normalized;
+      return true;
+    },
     parseBase36Mask(value) {
       if (typeof value !== "string" || value.trim() === "") {
         return 0;
@@ -2260,6 +2317,12 @@ export default {
       if (this.form.clientType === "singbox" && this.form.tpl.singbox.ipv6 === true) {
         queryParts.push("singbox.ipv6=1");
       }
+      if (this.form.clientType === "singbox") {
+        const normalizedSingboxVersion = this.normalizeVersionInput(this.form.singboxVersion || "1.11.0");
+        if (normalizedSingboxVersion !== "") {
+          queryParts.push("singbox_ver=" + encodeURIComponent(normalizedSingboxVersion));
+        }
+      }
       return queryParts;
     },
     buildDigestUrl(backend, subQuery) {
@@ -2298,6 +2361,9 @@ export default {
         return false;
       }
       if (!this.ensureDialerBackendSupported(true)) {
+        return false;
+      }
+      if (!this.validateSingboxVersionForCurrentTarget(true)) {
         return false;
       }
       if (!this.validateProxyProviderEntries()) {
@@ -2398,6 +2464,15 @@ export default {
           } else {
             //类型为其他
             this.form.clientType = target;
+          }
+        }
+        if (this.form.clientType === "singbox") {
+          const singboxVersionParam = this.getFirstParamValue(param, ["singbox_ver", "singbox.ver", "ver"]);
+          if (singboxVersionParam !== "") {
+            const normalized = this.normalizeVersionInput(singboxVersionParam);
+            this.form.singboxVersion = normalized === "" ? "1.11.0" : normalized;
+          } else {
+            this.form.singboxVersion = "1.11.0";
           }
         }
         if (param.get("url")) {
@@ -2504,6 +2579,9 @@ export default {
       if (!this.ensureDialerBackendSupported(true)) {
         return null;
       }
+      if (!this.validateSingboxVersionForCurrentTarget(true)) {
+        return null;
+      }
       if (!this.validateProxyProviderEntries()) {
         return null;
       }
@@ -2530,6 +2608,9 @@ export default {
       data.append("use_dialer", encodeURIComponent(this.form.useDialer.toString()));
       data.append("dialer_group_name", encodeURIComponent(this.form.dialerGroupName));
       data.append("apply_dialer_to", encodeURIComponent(this.form.applyDialerTo));
+      if (this.form.clientType === "singbox") {
+        data.append("singbox_ver", encodeURIComponent(this.form.singboxVersion));
+      }
       data.append("proxy_providers", this.encodeProxyProvidersForRequest(this.form.proxyProviders));
       return data;
     },

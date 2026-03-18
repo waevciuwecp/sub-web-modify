@@ -58,14 +58,16 @@ http://192.168.10.1:8090/?backend=https://url.v1.mk
 - 匹配统计以 `matched / total` 显示
 - 若远程 ini 受 CORS/网络限制导致失败，会显示错误提示并跳过高亮匹配
 
-### 6) 从URL解析支持 Dialer 参数
+### 6) 从URL解析支持 Dialer / Sing-box 参数
 “从URL解析”已支持以下参数回填到表单：
 - `use_dialer` / `useDialer`
 - `dialer_group_name` / `dialerGroupName`
 - `apply_dialer_to` / `applyDialerTo`
 - `proxy_providers` / `proxy-providers` / `proxyProviders`
+- `singbox_ver` / `singbox.ver` / `ver`（当 `target=singbox`）
 
 其中 `use_dialer` 支持 `true/1/yes`。
+`singbox_ver` 在前端按后端最新约束校验为 `1.11.x - 1.14.x`。
 
 ### 7) proxy_providers 编码说明
 - 前端按标准 `encodeURIComponent` 发送 `proxy_providers`
@@ -86,7 +88,7 @@ http://192.168.10.1:8090/?backend=https://url.v1.mk
   - `base64url(紧凑 q)`
   - `deflateRaw + base64url(完整 q)`
   - `base64url(完整 q)`
-- 常用短键映射：`t->target`、`u->url`、`c->config`、`i->include`、`e->exclude`、`r->rename`、`d->dev_id`、`iv->interval`、`p->proxy_providers`、`v->ver`、`dg->dialer_group_name`、`da->apply_dialer_to`。
+- 常用短键映射：`t->target`、`u->url`、`c->config`、`i->include`、`e->exclude`、`r->rename`、`d->dev_id`、`iv->interval`、`p->proxy_providers`、`v->ver`、`sv->singbox_ver`、`dg->dialer_group_name`、`da->apply_dialer_to`。
 - Digest 模式下，`filename` 不再写入 `q`，只通过 `a` 传递，避免重复参数导致链接变长；全量参数名仍支持手工编辑。
 - 从 URL 解析时，若路径是 `/digest` 且存在 `a`，前端会优先使用 `a` 回填“订阅命名”。
 - 二维码生成使用更低纠错等级（`L`）与更大尺寸（按 URL 长度自适应），提升长链接的扫码成功率。
