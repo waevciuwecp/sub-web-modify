@@ -41,16 +41,11 @@
                   <el-option v-for="(v, k) in options.customBackend" :key="k" :label="k" :value="v"></el-option>
                 </el-select>
               </el-form-item>
-              <el-form-item label="短链选择:">
-                <el-select
-                    v-model="form.shortType"
-                    allow-create
-                    filterable
-                    placeholder="可输入其他可用短链API"
-                    style="width: 100%"
-                >
-                  <el-option v-for="(v, k) in options.shortTypes" :key="k" :label="k" :value="v"></el-option>
-                </el-select>
+              <el-form-item label="订阅别名:">
+                <el-input
+                    v-model="form.digestAlias"
+                    placeholder="用于 /digest 的 a 参数，仅用于备注识别"
+                />
               </el-form-item>
               <el-form-item label="远程配置:">
                 <el-select
@@ -180,6 +175,13 @@
                       </div>
                     </el-form-item>
                     <el-divider content-position="left">通用高级参数</el-divider>
+                    <el-form-item label="Digest开关:">
+                      <el-switch
+                          v-model="form.useDigest"
+                          active-text="启用 /digest（默认）"
+                          inactive-text="使用 /sub"
+                      />
+                    </el-form-item>
                     <el-form-item label="包含节点:">
                       <el-input v-model="form.includeRemarks" placeholder="要保留的节点，支持正则"/>
                     </el-form-item>
@@ -294,18 +296,12 @@
                       icon="el-icon-document-copy"
                   >复制
                   </el-button>
-                </el-input>
-              </el-form-item>
-              <el-form-item label="订阅短链:">
-                <el-input class="copy-content" v-model="customShortSubUrl"
-                          placeholder="输入自定义短链接后缀，点击生成短链接可反复生成">
                   <el-button
                       slot="append"
-                      v-clipboard:copy="customShortSubUrl"
-                      v-clipboard:success="onCopy"
-                      ref="copy-btn"
-                      icon="el-icon-document-copy"
-                  >复制
+                      icon="el-icon-picture-outline"
+                      @click="openCustomSubQrCode"
+                      :disabled="customSubUrl.length === 0"
+                  >二维码
                   </el-button>
                 </el-input>
               </el-form-item>
@@ -316,14 +312,6 @@
                     @click="makeUrl"
                     :disabled="form.sourceSubUrl.length === 0 || btnBoolean"
                 >生成订阅链接
-                </el-button>
-                <el-button
-                    style="width: 120px"
-                    type="danger"
-                    @click="makeShortUrl"
-                    :loading="loading1"
-                    :disabled="customSubUrl.length === 0"
-                >生成短链接
                 </el-button>
               </el-form-item>
               <el-form-item label-width="0px" style="text-align: center">
@@ -511,16 +499,42 @@
         </el-button>
       </div>
     </el-dialog>
+    <el-dialog
+        title="订阅二维码"
+        :visible.sync="dialogQrCodeVisible"
+        width="380px"
+    >
+      <div style="text-align: center;">
+        <img
+            v-if="qrCodeImageData"
+            :src="qrCodeImageData"
+            alt="订阅二维码"
+            style="width: 320px; height: 320px; max-width: 100%;"
+        />
+        <el-input
+            v-if="qrCodeSourceUrl"
+            style="margin-top: 12px;"
+            :value="qrCodeSourceUrl"
+            readonly
+        />
+      </div>
+      <div slot="footer" class="dialog-footer">
+        <el-button @click="dialogQrCodeVisible = false">关 闭</el-button>
+        <el-button type="primary" @click="downloadQrCodeImage" :disabled="!qrCodeImageData">下载二维码</el-button>
+      </div>
+    </el-dialog>
   </div>
 </template>
 <script>
+import QRCode from "qrcode";
+import pako from "pako";
+
 const project = process.env.VUE_APP_PROJECT
 const configScriptBackend = process.env.VUE_APP_CONFIG_UPLOAD_BACKEND + '/api.php'
 const remoteConfigSample = process.env.VUE_APP_SUBCONVERTER_REMOTE_CONFIG
 const scriptConfigSample = process.env.VUE_APP_SCRIPT_CONFIG
 const filterConfigSample = process.env.VUE_APP_FILTER_CONFIG
 const defaultBackend = process.env.VUE_APP_SUBCONVERTER_DEFAULT_BACKEND
-const shortUrlBackend = process.env.VUE_APP_MYURLS_DEFAULT_BACKEND + '/short'
 const configUploadBackend = process.env.VUE_APP_CONFIG_UPLOAD_BACKEND + '/sub.php'
 const basicVideo = process.env.VUE_APP_BASIC_VIDEO
 const advancedVideo = process.env.VUE_APP_ADVANCED_VIDEO
@@ -558,13 +572,6 @@ export default {
           "Shadowsocks Android(SIP008)": "sssub",
           ShadowsocksD: "ssd",
           "自动判断客户端": "auto",
-        },
-        shortTypes: {
-          "v1.mk": "https://v1.mk/short",
-          "d1.mk": "https://d1.mk/short",
-          "dlj.tf": "https://dlj.tf/short",
-          "suo.yt": "https://suo.yt/short",
-          "sub.cm": "https://sub.cm/short",
         },
         customBackend: {
           "psub-oreo": "https://psub-oreo.yaoyy.moe",
@@ -1027,7 +1034,6 @@ export default {
         sourceSubUrl: "",
         clientType: "",
         customBackend: this.getUrlParam() == "" ? "https://psub-oreo.yaoyy.moe" : this.getUrlParam(),
-        shortType: "https://v1.mk/short",
         remoteConfig: "https://raw.githubusercontent.com/YaoYinYing/AnyRelay/main/config/nodnsleak.ini",
         excludeRemarks: "",
         includeRemarks: "",
@@ -1038,6 +1044,8 @@ export default {
         emoji: true,
         nodeList: false,
         extraset: false,
+        useDigest: true,
+        digestAlias: "",
         tls13: false,
         udp: false,
         xudp: false,
@@ -1074,14 +1082,15 @@ export default {
           }
         }
       },
-      loading1: false,
       loading2: false,
       loading3: false,
       customSubUrl: "",
-      customShortSubUrl: "",
       dialogUploadConfigVisible: false,
       loadConfig: "",
       dialogLoadConfigVisible: false,
+      dialogQrCodeVisible: false,
+      qrCodeImageData: "",
+      qrCodeSourceUrl: "",
       uploadFilter: "",
       uploadScript: "",
       uploadConfig: "",
@@ -1168,6 +1177,38 @@ export default {
     // },
     onCopy() {
       this.$message.success("已复制");
+    },
+    async openQrCodeDialog(url) {
+      const targetUrl = typeof url === "string" ? url.trim() : "";
+      if (targetUrl === "") {
+        this.$message.error("链接为空，无法生成二维码");
+        return;
+      }
+      try {
+        this.qrCodeImageData = await QRCode.toDataURL(targetUrl, {
+          width: 320,
+          margin: 2,
+          errorCorrectionLevel: "M"
+        });
+        this.qrCodeSourceUrl = targetUrl;
+        this.dialogQrCodeVisible = true;
+      } catch (e) {
+        this.$message.error("二维码生成失败");
+      }
+    },
+    openCustomSubQrCode() {
+      this.openQrCodeDialog(this.customSubUrl);
+    },
+    downloadQrCodeImage() {
+      if (!this.qrCodeImageData) {
+        return;
+      }
+      const anchor = document.createElement("a");
+      anchor.href = this.qrCodeImageData;
+      anchor.download = "subscription-qrcode.png";
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
     },
     goToProject() {
       window.open(project);
@@ -1354,6 +1395,207 @@ export default {
       const normalized = value.trim().toLowerCase();
       return normalized === "true" || normalized === "1" || normalized === "yes";
     },
+    looksLikeQueryString(query) {
+      if (typeof query !== "string" || query.trim() === "" || query.includes("\0")) {
+        return false;
+      }
+      const content = query.startsWith("?") ? query.slice(1) : query;
+      if (!content.includes("=")) {
+        return false;
+      }
+      const firstToken = content.split("&")[0];
+      const eqPos = firstToken.indexOf("=");
+      if (eqPos <= 0) {
+        return false;
+      }
+      return /^[A-Za-z0-9_.-]+$/.test(firstToken.slice(0, eqPos));
+    },
+    decodeBase64ToUtf8(content) {
+      try {
+        const normalized = content.replace(/-/g, "+").replace(/_/g, "/").replace(/ /g, "+").replace(/\r?\n/g, "");
+        const padded = normalized + "===".slice((normalized.length + 3) % 4);
+        const binary = window.atob(padded);
+        let escaped = "";
+        for (let i = 0; i < binary.length; i++) {
+          escaped += "%" + binary.charCodeAt(i).toString(16).padStart(2, "0");
+        }
+        return decodeURIComponent(escaped);
+      } catch (e) {
+        return "";
+      }
+    },
+    decodeBase64ToBytes(content) {
+      try {
+        const normalized = content.replace(/-/g, "+").replace(/_/g, "/").replace(/ /g, "+").replace(/\r?\n/g, "");
+        const padded = normalized + "===".slice((normalized.length + 3) % 4);
+        const binary = window.atob(padded);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) {
+          bytes[i] = binary.charCodeAt(i);
+        }
+        return bytes;
+      } catch (e) {
+        return null;
+      }
+    },
+    inflatePackedDigestQuery(base64Content) {
+      const bytes = this.decodeBase64ToBytes(base64Content);
+      if (!bytes) {
+        return "";
+      }
+      const tryInflate = (fn) => {
+        try {
+          const output = fn(bytes, {to: "string"});
+          return this.looksLikeQueryString(output) ? output : "";
+        } catch (e) {
+          return "";
+        }
+      };
+      return tryInflate(pako.inflate) || tryInflate(pako.inflateRaw) || "";
+    },
+    encodeUtf8ToBase64Url(content) {
+      try {
+        const utf8Binary = encodeURIComponent(content).replace(/%([0-9A-F]{2})/g, (_, p1) => String.fromCharCode(parseInt(p1, 16)));
+        return window.btoa(utf8Binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+      } catch (e) {
+        return content;
+      }
+    },
+    decodePackedDigestQuery(rawPackedQuery) {
+      if (typeof rawPackedQuery !== "string" || rawPackedQuery.trim() === "") {
+        return "";
+      }
+      let packed = rawPackedQuery.trim();
+      try {
+        packed = decodeURIComponent(packed);
+      } catch (e) {
+        // keep original string
+      }
+      if (packed.startsWith("?")) {
+        packed = packed.slice(1);
+      }
+      if (this.looksLikeQueryString(packed)) {
+        return packed;
+      }
+      const decodedBase64 = this.decodeBase64ToUtf8(packed);
+      if (decodedBase64 !== "" && this.looksLikeQueryString(decodedBase64)) {
+        return decodedBase64;
+      }
+      const inflatedQuery = this.inflatePackedDigestQuery(packed);
+      if (inflatedQuery !== "") {
+        return inflatedQuery;
+      }
+      return "";
+    },
+    mergeDigestQueryParams(rawParam) {
+      const mergedParam = new URLSearchParams();
+      const packedQuery = rawParam.get("q");
+      if (packedQuery) {
+        const unpackedQuery = this.decodePackedDigestQuery(packedQuery);
+        if (unpackedQuery !== "") {
+          const digestParam = new URLSearchParams(unpackedQuery.startsWith("?") ? unpackedQuery.slice(1) : unpackedQuery);
+          for (const [key, value] of digestParam.entries()) {
+            if (key !== "q") {
+              mergedParam.set(key, value);
+            }
+          }
+        }
+      }
+      for (const [key, value] of rawParam.entries()) {
+        if (key !== "q") {
+          mergedParam.set(key, value);
+        }
+      }
+      return mergedParam;
+    },
+    buildSubQueryParts(sourceSub) {
+      let queryParts = [];
+      if (this.form.clientType.includes("&")) {
+        const clientTypeParts = this.form.clientType.split("&");
+        queryParts.push("target=" + clientTypeParts[0]);
+        clientTypeParts.slice(1).forEach(part => {
+          if (part !== "") {
+            queryParts.push(part);
+          }
+        });
+      } else {
+        queryParts.push("target=" + this.form.clientType);
+      }
+      queryParts.push("url=" + encodeURIComponent(sourceSub));
+      queryParts.push("insert=" + this.form.insert);
+      if (this.form.remoteConfig !== "") {
+        queryParts.push("config=" + encodeURIComponent(this.form.remoteConfig));
+      }
+      if (this.form.excludeRemarks !== "") {
+        queryParts.push("exclude=" + encodeURIComponent(this.form.excludeRemarks));
+      }
+      if (this.form.includeRemarks !== "") {
+        queryParts.push("include=" + encodeURIComponent(this.form.includeRemarks));
+      }
+      if (this.form.filename !== "") {
+        queryParts.push("filename=" + encodeURIComponent(this.form.filename));
+      }
+      if (this.form.rename !== "") {
+        queryParts.push("rename=" + encodeURIComponent(this.form.rename));
+      }
+      if (this.form.interval !== "") {
+        queryParts.push("interval=" + encodeURIComponent(this.form.interval * 86400));
+      }
+      if (this.form.devid !== "") {
+        queryParts.push("dev_id=" + encodeURIComponent(this.form.devid));
+      }
+      if (this.form.appendType) {
+        queryParts.push("append_type=" + this.form.appendType.toString());
+      }
+      if (this.form.tls13) {
+        queryParts.push("tls13=" + this.form.tls13.toString());
+      }
+      if (this.form.sort) {
+        queryParts.push("sort=" + this.form.sort.toString());
+      }
+      if (this.form.useDialer) {
+        queryParts.push("use_dialer=true");
+        if (this.form.dialerGroupName.trim() !== "") {
+          queryParts.push("dialer_group_name=" + encodeURIComponent(this.form.dialerGroupName.trim()));
+        }
+        if (this.form.applyDialerTo.trim() !== "") {
+          queryParts.push("apply_dialer_to=" + encodeURIComponent(this.form.applyDialerTo.trim()));
+        }
+      }
+      if (this.form.proxyProviders.trim() !== "") {
+        queryParts.push("proxy_providers=" + this.encodeProxyProvidersForRequest(this.form.proxyProviders.trim()));
+      }
+      queryParts.push("emoji=" + this.form.emoji.toString());
+      queryParts.push("list=" + this.form.nodeList.toString());
+      queryParts.push("xudp=" + this.form.xudp.toString());
+      queryParts.push("udp=" + this.form.udp.toString());
+      queryParts.push("tfo=" + this.form.tfo.toString());
+      queryParts.push("expand=" + this.form.expand.toString());
+      queryParts.push("scv=" + this.form.scv.toString());
+      queryParts.push("fdn=" + this.form.fdn.toString());
+      if (this.form.clientType.includes("surge") && this.form.tpl.surge.doh === true) {
+        queryParts.push("surge.doh=true");
+      }
+      if (this.form.clientType === "clash") {
+        if (this.form.tpl.clash.doh === true) {
+          queryParts.push("clash.doh=true");
+        }
+        queryParts.push("new_name=" + this.form.new_name.toString());
+      }
+      if (this.form.clientType === "singbox" && this.form.tpl.singbox.ipv6 === true) {
+        queryParts.push("singbox.ipv6=1");
+      }
+      return queryParts;
+    },
+    buildDigestUrl(backend, subQuery) {
+      let digestParams = [];
+      if (this.form.digestAlias.trim() !== "") {
+        digestParams.push("a=" + encodeURIComponent(this.form.digestAlias.trim()));
+      }
+      const packedQuery = this.encodeUtf8ToBase64Url(subQuery);
+      digestParams.push("q=" + encodeURIComponent(packedQuery));
+      return backend + "/digest?" + digestParams.join("&");
+    },
     makeUrl() {
       if (this.form.sourceSubUrl === "" || this.form.clientType === "") {
         this.$message.error("订阅链接与客户端为必填项");
@@ -1369,134 +1611,10 @@ export default {
               : this.form.customBackend;
       let sourceSub = this.form.sourceSubUrl;
       sourceSub = sourceSub.replace(/(\n|\r|\n\r)/g, "|");
-      this.customSubUrl =
-          backend +
-          "/sub?target=" +
-          this.form.clientType +
-          "&url=" +
-          encodeURIComponent(sourceSub) +
-          "&insert=" +
-          this.form.insert;
-      if (this.form.remoteConfig !== "") {
-        this.customSubUrl +=
-            "&config=" + encodeURIComponent(this.form.remoteConfig);
-      }
-      if (this.form.excludeRemarks !== "") {
-        this.customSubUrl +=
-            "&exclude=" + encodeURIComponent(this.form.excludeRemarks);
-      }
-      if (this.form.includeRemarks !== "") {
-        this.customSubUrl +=
-            "&include=" + encodeURIComponent(this.form.includeRemarks);
-      }
-      if (this.form.filename !== "") {
-        this.customSubUrl +=
-            "&filename=" + encodeURIComponent(this.form.filename);
-      }
-      if (this.form.rename !== "") {
-        this.customSubUrl +=
-            "&rename=" + encodeURIComponent(this.form.rename);
-      }
-      if (this.form.interval !== "") {
-        this.customSubUrl +=
-            "&interval=" + encodeURIComponent(this.form.interval * 86400);
-      }
-      if (this.form.devid !== "") {
-        this.customSubUrl +=
-            "&dev_id=" + encodeURIComponent(this.form.devid);
-      }
-      if (this.form.appendType) {
-        this.customSubUrl +=
-            "&append_type=" + this.form.appendType.toString();
-      }
-      if (this.form.tls13) {
-        this.customSubUrl +=
-            "&tls13=" + this.form.tls13.toString();
-      }
-      if (this.form.sort) {
-        this.customSubUrl +=
-            "&sort=" + this.form.sort.toString();
-      }
-      if (this.form.useDialer) {
-        this.customSubUrl += "&use_dialer=true";
-        if (this.form.dialerGroupName.trim() !== "") {
-          this.customSubUrl += "&dialer_group_name=" + encodeURIComponent(this.form.dialerGroupName.trim());
-        }
-        if (this.form.applyDialerTo.trim() !== "") {
-          this.customSubUrl += "&apply_dialer_to=" + encodeURIComponent(this.form.applyDialerTo.trim());
-        }
-      }
-      if (this.form.proxyProviders.trim() !== "") {
-        this.customSubUrl += "&proxy_providers=" + this.encodeProxyProvidersForRequest(this.form.proxyProviders.trim());
-      }
-      this.customSubUrl +=
-          "&emoji=" +
-          this.form.emoji.toString() +
-          "&list=" +
-          this.form.nodeList.toString() +
-          "&xudp=" +
-          this.form.xudp.toString() +
-          "&udp=" +
-          this.form.udp.toString() +
-          "&tfo=" +
-          this.form.tfo.toString() +
-          "&expand=" +
-          this.form.expand.toString() +
-          "&scv=" +
-          this.form.scv.toString() +
-          "&fdn=" +
-          this.form.fdn.toString();
-      if (this.form.clientType.includes("surge")) {
-        if (this.form.tpl.surge.doh === true) {
-          this.customSubUrl += "&surge.doh=true";
-        }
-      }
-      if (this.form.clientType === "clash") {
-        if (this.form.tpl.clash.doh === true) {
-          this.customSubUrl += "&clash.doh=true";
-        }
-        this.customSubUrl += "&new_name=" + this.form.new_name.toString();
-      }
-      if (this.form.clientType === "singbox") {
-        if (this.form.tpl.singbox.ipv6 === true) {
-          this.customSubUrl += "&singbox.ipv6=1";
-        }
-      }
+      const subQuery = this.buildSubQueryParts(sourceSub).join("&");
+      this.customSubUrl = this.form.useDigest ? this.buildDigestUrl(backend, subQuery) : backend + "/sub?" + subQuery;
       this.$copyText(this.customSubUrl);
       this.$message.success("定制订阅已复制到剪贴板");
-    },
-    makeShortUrl() {
-      let duan =
-          this.form.shortType === ""
-              ? shortUrlBackend
-              : this.form.shortType;
-      this.loading1 = true;
-      let data = new FormData();
-      data.append("longUrl", btoa(this.customSubUrl));
-      if (this.customShortSubUrl.trim() != "") {
-        data.append("shortKey", this.customShortSubUrl.trim().indexOf("http") < 0 ? this.customShortSubUrl.trim() : "");
-      }
-      this.$axios
-          .post(duan, data, {
-            header: {
-              "Content-Type": "application/form-data; charset=utf-8"
-            }
-          })
-          .then(res => {
-            if (res.data.Code === 1 && res.data.ShortUrl !== "") {
-              this.customShortSubUrl = res.data.ShortUrl;
-              this.$copyText(res.data.ShortUrl);
-              this.$message.success("短链接已复制到剪贴板（IOS设备和Safari浏览器不支持自动复制API，需手动点击复制按钮）");
-            } else {
-              this.$message.error("短链接获取失败：" + res.data.Message);
-            }
-          })
-          .catch(() => {
-            this.$message.error("短链接获取失败");
-          })
-          .finally(() => {
-            this.loading1 = false;
-          });
     },
     confirmUploadConfig() {
       this.loading2 = true;
@@ -1528,7 +1646,7 @@ export default {
           });
     },
     analyzeUrl() {
-      if (this.loadConfig.indexOf("target") !== -1) {
+      if (this.loadConfig.indexOf("target=") !== -1 || this.loadConfig.indexOf("q=") !== -1) {
         return this.loadConfig;
       } else {
         this.loading3 = true;
@@ -1561,7 +1679,16 @@ export default {
           return;
         }
         this.form.customBackend = url.origin
-        let param = new URLSearchParams(url.search);
+        const rawParam = new URLSearchParams(url.search);
+        if (rawParam.get("a")) {
+          this.form.digestAlias = rawParam.get("a");
+        }
+        if (url.pathname === "/digest") {
+          this.form.useDigest = true;
+        } else if (url.pathname === "/sub") {
+          this.form.useDigest = false;
+        }
+        let param = this.mergeDigestQueryParams(rawParam);
         if (param.get("target")) {
           let target = param.get("target");
           if (target === 'surge' && param.get("ver")) {
