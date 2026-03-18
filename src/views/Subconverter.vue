@@ -190,6 +190,21 @@
                                 </el-button>
                               </el-col>
                             </el-row>
+                            <el-row v-if="provider.name.trim() !== ''" style="margin-top: 6px;">
+                              <el-col :span="24">
+                                <div
+                                    v-if="dialerProviderExpressions.length > 0"
+                                    class="provider-name-highlight-preview"
+                                    v-html="getProviderNameHighlightHtml(provider.name)"
+                                ></div>
+                                <div
+                                    v-else-if="dialerProviderExpressionLoading"
+                                    class="provider-name-highlight-preview provider-name-highlight-muted"
+                                >
+                                  正在识别表达式...
+                                </div>
+                              </el-col>
+                            </el-row>
                             <el-row :gutter="8" style="margin-top: 8px;">
                               <el-col :span="24">
                                 <el-input v-model.trim="provider.url" placeholder="url，例如 https://example.com/sub.yaml"/>
@@ -213,9 +228,11 @@
                         <div class="provider-column provider-json-column">
                           <div class="provider-json-title">Native JSON Input (Preview)</div>
                           <el-input
+                              class="provider-json-input"
                               v-model="proxyProvidersJsonInput"
                               type="textarea"
-                              :autosize="{ minRows: 12, maxRows: 20 }"
+                              :autosize="false"
+                              resize="none"
                               placeholder='[{"name":"dialer-a","type":"http","url":"https://example.com/a.yaml","interval":3600}]'
                           />
                           <div class="provider-actions">
@@ -236,7 +253,6 @@
                           <div class="provider-expression-hint" v-else>
                             未在当前远程配置中识别到 Dialer Provider 表达式（select-use）。
                           </div>
-                          <pre class="provider-json-render" v-html="proxyProvidersHighlightedPreview"></pre>
                           <div class="provider-json-tip">
                             点击“验证并回填”会进行 JSON 校验，并将结果写回左侧引导输入区。
                           </div>
@@ -1240,18 +1256,8 @@ export default {
     dialerProviderExpressionText() {
       return this.dialerProviderExpressions.join(" | ");
     },
-    proxyProvidersPreviewState() {
-      return this.buildProxyProvidersPreviewState();
-    },
     providerPreviewStats() {
-      const previewState = this.proxyProvidersPreviewState;
-      return {
-        total: previewState.totalNames,
-        matched: previewState.matchedNames
-      };
-    },
-    proxyProvidersHighlightedPreview() {
-      return this.proxyProvidersPreviewState.html;
+      return this.getProviderPreviewStatsFromJsonPreview();
     }
   },
   watch: {
@@ -1588,13 +1594,21 @@ export default {
       }
       return html;
     },
-    buildProxyProvidersPreviewState() {
+    getProviderNameHighlightHtml(name) {
+      const safeName = typeof name === "string" ? name : "";
+      const highlighted = this.renderHighlightedProviderName(safeName);
+      const escaped = this.escapeHtml(safeName);
+      if (highlighted === escaped) {
+        return `<span class="provider-name-no-match">${escaped}</span>`;
+      }
+      return highlighted;
+    },
+    getProviderPreviewStatsFromJsonPreview() {
       const raw = typeof this.proxyProvidersJsonInput === "string" ? this.proxyProvidersJsonInput.trim() : "";
       if (raw === "") {
         return {
-          html: `<span class="provider-json-empty">[]</span>`,
-          totalNames: 0,
-          matchedNames: 0
+          total: 0,
+          matched: 0
         };
       }
       let parsed;
@@ -1602,53 +1616,36 @@ export default {
         parsed = JSON.parse(raw);
       } catch (error) {
         return {
-          html: `<span class="provider-json-error">JSON 解析失败，无法进行高亮预览。</span>\n${this.escapeHtml(this.proxyProvidersJsonInput)}`,
-          totalNames: 0,
-          matchedNames: 0
+          total: 0,
+          matched: 0
         };
       }
-
-      const nameTokens = [];
-      let totalNames = 0;
-      let matchedNames = 0;
-
-      const replaceProviderNameWithToken = (value) => {
+      let total = 0;
+      let matched = 0;
+      const scan = (value) => {
         if (Array.isArray(value)) {
-          return value.map(item => replaceProviderNameWithToken(item));
+          value.forEach(item => scan(item));
+          return;
         }
         if (!value || typeof value !== "object") {
-          return value;
+          return;
         }
-        const result = {};
         Object.keys(value).forEach(key => {
           const fieldValue = value[key];
           if (key === "name" && typeof fieldValue === "string") {
-            const token = `__DIALER_PROVIDER_NAME_TOKEN_${nameTokens.length}__`;
-            const ranges = this.findMatchedRangesInProviderName(fieldValue);
-            totalNames += 1;
-            if (ranges.length > 0) {
-              matchedNames += 1;
+            total += 1;
+            if (this.findMatchedRangesInProviderName(fieldValue).length > 0) {
+              matched += 1;
             }
-            nameTokens.push(this.renderHighlightedProviderName(fieldValue));
-            result[key] = token;
           } else {
-            result[key] = replaceProviderNameWithToken(fieldValue);
+            scan(fieldValue);
           }
         });
-        return result;
       };
-
-      const renderedJson = replaceProviderNameWithToken(parsed);
-      const escapedJson = this.escapeHtml(JSON.stringify(renderedJson, null, 2));
-      const html = escapedJson.replace(/&quot;__DIALER_PROVIDER_NAME_TOKEN_(\d+)__&quot;/g, (matched, indexText) => {
-        const index = parseInt(indexText, 10);
-        const value = nameTokens[index];
-        return value === undefined ? matched : `&quot;${value}&quot;`;
-      });
+      scan(parsed);
       return {
-        html,
-        totalNames,
-        matchedNames
+        total,
+        matched
       };
     },
     applyDialerProvidersSample() {
@@ -2741,6 +2738,11 @@ export default {
   padding: 10px;
 }
 
+.subconverter-page .provider-json-column {
+  display: flex;
+  flex-direction: column;
+}
+
 .subconverter-page .provider-guide-tip,
 .subconverter-page .provider-json-tip {
   font-size: 12px;
@@ -2767,10 +2769,39 @@ export default {
   margin-top: 8px;
 }
 
+.subconverter-page .provider-name-highlight-preview {
+  font-size: 12px;
+  color: #4a5e71;
+  line-height: 1.4;
+  word-break: break-all;
+}
+
+.subconverter-page .provider-name-highlight-muted {
+  color: #7f90a0;
+}
+
+.subconverter-page .provider-name-no-match {
+  color: #6f7f8f;
+}
+
+.subconverter-page .provider-json-input {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 220px;
+}
+
+.subconverter-page .provider-json-input .el-textarea {
+  flex: 1;
+  display: flex;
+}
+
 .subconverter-page .provider-json-column .el-textarea__inner {
   font-family: "JetBrains Mono", "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
   font-size: 12px;
   line-height: 1.5;
+  height: 100% !important;
+  min-height: 220px;
 }
 
 .subconverter-page .provider-json-title {
@@ -2806,35 +2837,11 @@ export default {
   word-break: break-all;
 }
 
-.subconverter-page .provider-json-render {
-  margin: 8px 0 0;
-  max-height: 220px;
-  overflow: auto;
-  padding: 10px;
-  border: 1px solid #d8e0e8;
-  border-radius: 10px;
-  background: #f5f8fb;
-  color: #2f4050;
-  font-size: 12px;
-  line-height: 1.55;
-  white-space: pre-wrap;
-  font-family: "JetBrains Mono", "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
-}
-
 .subconverter-page .provider-name-match {
   background: #ffdf95;
   color: #4a3610;
   border-radius: 3px;
   padding: 0 1px;
-}
-
-.subconverter-page .provider-json-error {
-  color: #c4515f;
-  font-weight: 600;
-}
-
-.subconverter-page .provider-json-empty {
-  color: #7c8fa1;
 }
 
 .subconverter-page .el-input__inner,
@@ -2960,6 +2967,18 @@ body.dark-mode .subconverter-page .provider-expression-hint {
   color: #9db4c8;
 }
 
+body.dark-mode .subconverter-page .provider-name-highlight-preview {
+  color: #9eb6ca;
+}
+
+body.dark-mode .subconverter-page .provider-name-highlight-muted {
+  color: #8399ab;
+}
+
+body.dark-mode .subconverter-page .provider-name-no-match {
+  color: #8ea5b9;
+}
+
 body.dark-mode .subconverter-page .provider-expression-error {
   color: #f08a97;
 }
@@ -2970,19 +2989,9 @@ body.dark-mode .subconverter-page .provider-expression-code {
   color: #d3e4f1;
 }
 
-body.dark-mode .subconverter-page .provider-json-render {
-  background: #172631;
-  border-color: #3d566a;
-  color: #d8e6f2;
-}
-
 body.dark-mode .subconverter-page .provider-name-match {
   background: #ecc97a;
   color: #2a1f08;
-}
-
-body.dark-mode .subconverter-page .provider-json-empty {
-  color: #8fa9be;
 }
 
 body.dark-mode .subconverter-page .el-alert {
