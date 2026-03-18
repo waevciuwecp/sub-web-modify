@@ -222,6 +222,21 @@
                             <el-button size="mini" type="primary" @click="verifyProxyProvidersJsonWriteback">验证并回填</el-button>
                             <el-button size="mini" plain @click="refreshProxyProvidersEditorFromEntries">刷新预览</el-button>
                           </div>
+                          <div class="provider-expression-hint" v-if="dialerProviderExpressionLoading">
+                            正在预取远程 ini 并识别 Dialer Provider 表达式...
+                          </div>
+                          <div class="provider-expression-hint provider-expression-error" v-else-if="dialerProviderExpressionError">
+                            {{ dialerProviderExpressionError }}
+                          </div>
+                          <div class="provider-expression-hint" v-else-if="dialerProviderExpressions.length > 0">
+                            允许表达式：
+                            <code class="provider-expression-code">{{ dialerProviderExpressionText }}</code>
+                            ，当前匹配 {{ providerPreviewStats.matched }} / {{ providerPreviewStats.total }} 条 name。
+                          </div>
+                          <div class="provider-expression-hint" v-else>
+                            未在当前远程配置中识别到 Dialer Provider 表达式（select-use）。
+                          </div>
+                          <pre class="provider-json-render" v-html="proxyProvidersHighlightedPreview"></pre>
                           <div class="provider-json-tip">
                             点击“验证并回填”会进行 JSON 校验，并将结果写回左侧引导输入区。
                           </div>
@@ -1185,12 +1200,23 @@ export default {
       filterConfig: filterConfigSample,
       scriptConfig: scriptConfigSample,
       sampleConfig: remoteConfigSample,
-      proxyProvidersJsonInput: ""
+      proxyProvidersJsonInput: "",
+      dialerProviderExpressions: [],
+      dialerProviderRegexList: [],
+      dialerProviderExpressionLoading: false,
+      dialerProviderExpressionError: "",
+      remoteConfigExpressionCache: {},
+      remoteConfigPrefetchTimer: null
     };
   },
   created() {
     document.title = "Awesome idea front";
     this.isPC = this.$getOS().isPc;
+  },
+  beforeDestroy() {
+    if (this.remoteConfigPrefetchTimer) {
+      clearTimeout(this.remoteConfigPrefetchTimer);
+    }
   },
   mounted() {
     // this.tanchuang();
@@ -1210,12 +1236,33 @@ export default {
       darkMedia.addEventListener('change', callback);
     } //监听系统主题，自动切换！
   },
+  computed: {
+    dialerProviderExpressionText() {
+      return this.dialerProviderExpressions.join(" | ");
+    },
+    providerPreviewStats() {
+      const previewState = this.buildProxyProvidersPreviewState();
+      return {
+        total: previewState.totalNames,
+        matched: previewState.matchedNames
+      };
+    },
+    proxyProvidersHighlightedPreview() {
+      return this.buildProxyProvidersPreviewState().html;
+    }
+  },
   watch: {
     "form.proxyProviderEntries": {
       deep: true,
       handler() {
         this.syncProxyProvidersStringFromEntries();
         this.refreshProxyProvidersEditorFromEntries();
+      }
+    },
+    "form.remoteConfig": {
+      immediate: true,
+      handler() {
+        this.scheduleDialerExpressionPrefetch();
       }
     }
   },
@@ -1349,6 +1396,257 @@ export default {
     selectDialerRemoteConfig() {
       this.form.remoteConfig = "https://raw.githubusercontent.com/YaoYinYing/AnyRelay/refs/heads/main/config/nodnsleak.dialer-non_lb.ini";
       this.$message.success("已切换到 Dialer（默认）远程配置");
+    },
+    scheduleDialerExpressionPrefetch() {
+      if (this.remoteConfigPrefetchTimer) {
+        clearTimeout(this.remoteConfigPrefetchTimer);
+      }
+      this.remoteConfigPrefetchTimer = setTimeout(() => {
+        this.prefetchDialerExpressionFromRemoteConfig();
+      }, 300);
+    },
+    async prefetchDialerExpressionFromRemoteConfig() {
+      const remoteConfigUrl = typeof this.form.remoteConfig === "string" ? this.form.remoteConfig.trim() : "";
+      this.dialerProviderExpressionError = "";
+      if (remoteConfigUrl === "" || !/^https?:\/\//i.test(remoteConfigUrl)) {
+        this.dialerProviderExpressions = [];
+        this.dialerProviderRegexList = [];
+        return;
+      }
+      if (Object.prototype.hasOwnProperty.call(this.remoteConfigExpressionCache, remoteConfigUrl)) {
+        const cached = this.remoteConfigExpressionCache[remoteConfigUrl];
+        this.dialerProviderExpressions = cached.expressions;
+        this.dialerProviderRegexList = cached.regexList;
+        return;
+      }
+      this.dialerProviderExpressionLoading = true;
+      try {
+        const response = await fetch(remoteConfigUrl, {method: "GET"});
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        const iniText = await response.text();
+        const expressions = this.extractDialerProviderExpressionsFromIni(iniText);
+        const regexList = this.compileDialerProviderExpressions(expressions);
+        this.remoteConfigExpressionCache[remoteConfigUrl] = {expressions, regexList};
+        if (this.form.remoteConfig.trim() === remoteConfigUrl) {
+          this.dialerProviderExpressions = expressions;
+          this.dialerProviderRegexList = regexList;
+        }
+      } catch (error) {
+        if (this.form.remoteConfig.trim() === remoteConfigUrl) {
+          this.dialerProviderExpressions = [];
+          this.dialerProviderRegexList = [];
+          this.dialerProviderExpressionError = "预取 ini 失败，当前无法进行表达式匹配高亮";
+        }
+      } finally {
+        if (this.form.remoteConfig.trim() === remoteConfigUrl) {
+          this.dialerProviderExpressionLoading = false;
+        }
+      }
+    },
+    extractDialerProviderExpressionsFromIni(iniText) {
+      if (typeof iniText !== "string" || iniText.trim() === "") {
+        return [];
+      }
+      const expressionSet = new Set();
+      iniText.split(/\r?\n/).forEach(line => {
+        const content = line.trim();
+        if (content === "" || content.startsWith("#") || content.startsWith(";")) {
+          return;
+        }
+        if (!content.startsWith("custom_proxy_group=")) {
+          return;
+        }
+        const raw = content.slice("custom_proxy_group=".length);
+        const tokens = raw.split("`");
+        if (tokens.length < 3) {
+          return;
+        }
+        const groupName = tokens[0].trim();
+        const groupType = tokens[1].trim().toLowerCase();
+        const expression = tokens[2].trim();
+        if (groupType !== "select-use") {
+          return;
+        }
+        if (!/dialer/i.test(groupName)) {
+          return;
+        }
+        if (expression !== "") {
+          expressionSet.add(expression);
+        }
+      });
+      return Array.from(expressionSet);
+    },
+    compileDialerProviderExpressions(expressions) {
+      if (!Array.isArray(expressions)) {
+        return [];
+      }
+      const regexList = [];
+      expressions.forEach(expression => {
+        if (typeof expression !== "string") {
+          return;
+        }
+        let pattern = expression.trim();
+        if (pattern === "") {
+          return;
+        }
+        if ((pattern.startsWith("'") && pattern.endsWith("'")) || (pattern.startsWith("\"") && pattern.endsWith("\""))) {
+          pattern = pattern.slice(1, -1);
+        }
+        let flags = "";
+        const inlineFlags = pattern.match(/^\(\?([A-Za-z]+)\)/);
+        if (inlineFlags) {
+          flags = inlineFlags[1].toLowerCase().split("").filter(ch => "imsuy".includes(ch)).join("");
+          pattern = pattern.slice(inlineFlags[0].length);
+        }
+        if (pattern === "") {
+          return;
+        }
+        try {
+          regexList.push(new RegExp(pattern, flags));
+        } catch (e) {
+          // ignore invalid expression in ini
+        }
+      });
+      return regexList;
+    },
+    escapeHtml(content) {
+      return String(content)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+    },
+    mergeRanges(ranges) {
+      if (!Array.isArray(ranges) || ranges.length === 0) {
+        return [];
+      }
+      const sorted = ranges
+          .filter(item => Array.isArray(item) && item.length === 2 && item[1] > item[0])
+          .sort((a, b) => a[0] - b[0]);
+      if (sorted.length === 0) {
+        return [];
+      }
+      const merged = [sorted[0].slice()];
+      for (let i = 1; i < sorted.length; i++) {
+        const current = sorted[i];
+        const last = merged[merged.length - 1];
+        if (current[0] <= last[1]) {
+          last[1] = Math.max(last[1], current[1]);
+        } else {
+          merged.push(current.slice());
+        }
+      }
+      return merged;
+    },
+    findMatchedRangesInProviderName(name) {
+      if (typeof name !== "string" || name === "" || this.dialerProviderRegexList.length === 0) {
+        return [];
+      }
+      const ranges = [];
+      this.dialerProviderRegexList.forEach(regex => {
+        const scanFlags = Array.from(new Set((regex.flags + "g").split(""))).join("");
+        const scanRegex = new RegExp(regex.source, scanFlags);
+        let count = 0;
+        let match = scanRegex.exec(name);
+        while (match) {
+          if (match[0] !== "") {
+            ranges.push([match.index, match.index + match[0].length]);
+          } else {
+            scanRegex.lastIndex += 1;
+          }
+          count += 1;
+          if (count > 200) {
+            break;
+          }
+          match = scanRegex.exec(name);
+        }
+      });
+      return this.mergeRanges(ranges);
+    },
+    renderHighlightedProviderName(name) {
+      const ranges = this.findMatchedRangesInProviderName(name);
+      if (ranges.length === 0) {
+        return this.escapeHtml(name);
+      }
+      let cursor = 0;
+      let html = "";
+      ranges.forEach(([start, end]) => {
+        if (cursor < start) {
+          html += this.escapeHtml(name.slice(cursor, start));
+        }
+        html += `<mark class="provider-name-match">${this.escapeHtml(name.slice(start, end))}</mark>`;
+        cursor = end;
+      });
+      if (cursor < name.length) {
+        html += this.escapeHtml(name.slice(cursor));
+      }
+      return html;
+    },
+    buildProxyProvidersPreviewState() {
+      const raw = typeof this.proxyProvidersJsonInput === "string" ? this.proxyProvidersJsonInput.trim() : "";
+      if (raw === "") {
+        return {
+          html: `<span class="provider-json-empty">[]</span>`,
+          totalNames: 0,
+          matchedNames: 0
+        };
+      }
+      let parsed;
+      try {
+        parsed = JSON.parse(raw);
+      } catch (error) {
+        return {
+          html: `<span class="provider-json-error">JSON 解析失败，无法进行高亮预览。</span>\n${this.escapeHtml(this.proxyProvidersJsonInput)}`,
+          totalNames: 0,
+          matchedNames: 0
+        };
+      }
+
+      const nameTokens = [];
+      let totalNames = 0;
+      let matchedNames = 0;
+
+      const replaceProviderNameWithToken = (value) => {
+        if (Array.isArray(value)) {
+          return value.map(item => replaceProviderNameWithToken(item));
+        }
+        if (!value || typeof value !== "object") {
+          return value;
+        }
+        const result = {};
+        Object.keys(value).forEach(key => {
+          const fieldValue = value[key];
+          if (key === "name" && typeof fieldValue === "string") {
+            const token = `__DIALER_PROVIDER_NAME_TOKEN_${nameTokens.length}__`;
+            const ranges = this.findMatchedRangesInProviderName(fieldValue);
+            totalNames += 1;
+            if (ranges.length > 0) {
+              matchedNames += 1;
+            }
+            nameTokens.push(this.renderHighlightedProviderName(fieldValue));
+            result[key] = token;
+          } else {
+            result[key] = replaceProviderNameWithToken(fieldValue);
+          }
+        });
+        return result;
+      };
+
+      const renderedJson = replaceProviderNameWithToken(parsed);
+      const escapedJson = this.escapeHtml(JSON.stringify(renderedJson, null, 2));
+      const html = escapedJson.replace(/&quot;__DIALER_PROVIDER_NAME_TOKEN_(\d+)__&quot;/g, (matched, indexText) => {
+        const index = parseInt(indexText, 10);
+        const value = nameTokens[index];
+        return value === undefined ? matched : `&quot;${value}&quot;`;
+      });
+      return {
+        html,
+        totalNames,
+        matchedNames
+      };
     },
     applyDialerProvidersSample() {
       this.form.proxyProviderEntries = [
@@ -2484,6 +2782,58 @@ export default {
   margin-top: 8px;
 }
 
+.subconverter-page .provider-expression-hint {
+  margin-top: 8px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #5f7486;
+}
+
+.subconverter-page .provider-expression-error {
+  color: #c4515f;
+}
+
+.subconverter-page .provider-expression-code {
+  background: #e9eef3;
+  border: 1px solid #d3dee7;
+  border-radius: 6px;
+  padding: 1px 6px;
+  color: #2f4f67;
+  font-family: "JetBrains Mono", "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
+  word-break: break-all;
+}
+
+.subconverter-page .provider-json-render {
+  margin: 8px 0 0;
+  max-height: 220px;
+  overflow: auto;
+  padding: 10px;
+  border: 1px solid #d8e0e8;
+  border-radius: 10px;
+  background: #f5f8fb;
+  color: #2f4050;
+  font-size: 12px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  font-family: "JetBrains Mono", "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
+}
+
+.subconverter-page .provider-name-match {
+  background: #ffdf95;
+  color: #4a3610;
+  border-radius: 3px;
+  padding: 0 1px;
+}
+
+.subconverter-page .provider-json-error {
+  color: #c4515f;
+  font-weight: 600;
+}
+
+.subconverter-page .provider-json-empty {
+  color: #7c8fa1;
+}
+
 .subconverter-page .el-input__inner,
 .subconverter-page .el-textarea__inner,
 .subconverter-page .el-select .el-input__inner {
@@ -2601,6 +2951,35 @@ body.dark-mode .subconverter-page .provider-column {
 body.dark-mode .subconverter-page .provider-card {
   background: #17232e;
   border-color: #33485c;
+}
+
+body.dark-mode .subconverter-page .provider-expression-hint {
+  color: #9db4c8;
+}
+
+body.dark-mode .subconverter-page .provider-expression-error {
+  color: #f08a97;
+}
+
+body.dark-mode .subconverter-page .provider-expression-code {
+  background: #1e2f3d;
+  border-color: #3d5569;
+  color: #d3e4f1;
+}
+
+body.dark-mode .subconverter-page .provider-json-render {
+  background: #172631;
+  border-color: #3d566a;
+  color: #d8e6f2;
+}
+
+body.dark-mode .subconverter-page .provider-name-match {
+  background: #ecc97a;
+  color: #2a1f08;
+}
+
+body.dark-mode .subconverter-page .provider-json-empty {
+  color: #8fa9be;
 }
 
 body.dark-mode .subconverter-page .el-alert {
