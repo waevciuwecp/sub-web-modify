@@ -114,17 +114,16 @@
                   show-icon
               />
               <el-form-item label-width="0px">
-                <el-collapse>
+                <el-collapse class="advanced-collapse">
                   <el-collapse-item>
                     <template slot="title">
-                      <el-form-item label="高级功能:" style="width: 100%;">
-                        <el-button
-                            type="limr"
-                            style="width: 100%;"
-                            icon="el-icon-more-outline"
-                        >点击显示/隐藏
-                        </el-button>
-                      </el-form-item>
+                      <div class="advanced-toggle-header">
+                        <span class="advanced-toggle-label">高级功能</span>
+                        <span class="advanced-toggle-action">
+                          <i class="el-icon-more-outline"></i>
+                          点击显示/隐藏
+                        </span>
+                      </div>
                     </template>
                     <el-divider content-position="left">Dialer Proxy Providers</el-divider>
                     <el-alert
@@ -2375,6 +2374,49 @@ export default {
   margin-top: -4px;
 }
 
+.subconverter-page .advanced-collapse {
+  border: 1px solid #d7dde4;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #f7fafc;
+}
+
+.subconverter-page .advanced-collapse .el-collapse-item__header {
+  height: auto;
+  line-height: normal;
+  border-bottom: none;
+  background: transparent;
+  padding: 10px 12px;
+}
+
+.subconverter-page .advanced-collapse .el-collapse-item__wrap {
+  border-bottom: none;
+  background: transparent;
+}
+
+.subconverter-page .advanced-toggle-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.subconverter-page .advanced-toggle-label {
+  font-weight: 700;
+  font-size: 14px;
+  color: #2f4758;
+  letter-spacing: 0.03em;
+}
+
+.subconverter-page .advanced-toggle-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #5f7384;
+}
+
 .subconverter-page .copy-content .el-input__inner {
   font-family: "JetBrains Mono", "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
   font-size: 12px;
@@ -2524,6 +2566,28 @@ body.dark-mode .subconverter-page .section-divider .el-divider__text {
   color: #bfd7ea !important;
 }
 
+body.dark-mode .subconverter-page .advanced-collapse {
+  background: #14202a;
+  border-color: #324556;
+}
+
+body.dark-mode .subconverter-page .advanced-collapse .el-collapse-item__header {
+  background: #172530;
+  border-bottom-color: transparent;
+}
+
+body.dark-mode .subconverter-page .advanced-collapse .el-collapse-item__wrap {
+  background: #14202a;
+}
+
+body.dark-mode .subconverter-page .advanced-toggle-label {
+  color: #d2e2ef;
+}
+
+body.dark-mode .subconverter-page .advanced-toggle-action {
+  color: #9db4c8;
+}
+
 body.dark-mode .subconverter-page .provider-column {
   background: #121d27;
   border-color: #314252;
@@ -2624,6 +2688,11 @@ body.dark-mode .subconverter-page .el-button--danger {
 
   .subconverter-page .info-band {
     grid-template-columns: 1fr;
+  }
+
+  .subconverter-page .advanced-toggle-header {
+    flex-wrap: wrap;
+    gap: 6px;
   }
 
   .subconverter-page .header-side {
