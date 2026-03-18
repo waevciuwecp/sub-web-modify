@@ -1275,6 +1275,16 @@ export default {
         this.scheduleDialerExpressionPrefetch();
       }
     },
+    "form.useDialer"(enabled) {
+      if (enabled) {
+        this.ensureDialerBackendSupported(true);
+      }
+    },
+    "form.customBackend"() {
+      if (this.form.useDialer) {
+        this.ensureDialerBackendSupported(true);
+      }
+    },
     proxyProvidersJsonInput() {
       this.$nextTick(() => {
         this.syncProviderJsonOverlayScroll();
@@ -1282,6 +1292,39 @@ export default {
     }
   },
   methods: {
+    notify(type, message, options = {}) {
+      const extraClass = typeof options.customClass === "string" && options.customClass.trim() !== "" ? ` ${options.customClass.trim()}` : "";
+      return this.$message({
+        showClose: true,
+        duration: type === "error" ? 3200 : 2200,
+        ...options,
+        type,
+        message,
+        customClass: `message-bottom-right${extraClass}`.trim()
+      });
+    },
+    notifySuccess(message, options = {}) {
+      return this.notify("success", message, options);
+    },
+    notifyError(message, options = {}) {
+      return this.notify("error", message, options);
+    },
+    isDialerBackendSupported(backend = this.form.customBackend) {
+      const text = typeof backend === "string" ? backend : "";
+      return text.includes("sub-dialer.yaoyy.moe");
+    },
+    ensureDialerBackendSupported(needNotify = false) {
+      if (!this.form.useDialer) {
+        return true;
+      }
+      if (this.isDialerBackendSupported()) {
+        return true;
+      }
+      if (needNotify) {
+        this.notifyError("该后端不支持dialer");
+      }
+      return false;
+    },
     selectChanged() {
       this.getBackendVersion();
     },
@@ -1336,12 +1379,12 @@ export default {
     //   });
     // },
     onCopy() {
-      this.$message.success("已复制");
+      this.notifySuccess("已复制");
     },
     async openQrCodeDialog(url) {
       const targetUrl = typeof url === "string" ? url.trim() : "";
       if (targetUrl === "") {
-        this.$message.error("链接为空，无法生成二维码");
+        this.notifyError("链接为空，无法生成二维码");
         return;
       }
       try {
@@ -1354,7 +1397,7 @@ export default {
         this.qrCodeSourceUrl = targetUrl;
         this.dialogQrCodeVisible = true;
       } catch (e) {
-        this.$message.error("二维码生成失败");
+        this.notifyError("二维码生成失败");
       }
     },
     openCustomSubQrCode() {
@@ -1410,7 +1453,7 @@ export default {
     },
     selectDialerRemoteConfig() {
       this.form.remoteConfig = "https://raw.githubusercontent.com/YaoYinYing/AnyRelay/refs/heads/main/config/nodnsleak.dialer-non_lb.ini";
-      this.$message.success("已切换到 Dialer（默认）远程配置");
+      this.notifySuccess("已切换到 Dialer（默认）远程配置");
     },
     scheduleDialerExpressionPrefetch() {
       if (this.remoteConfigPrefetchTimer) {
@@ -1760,23 +1803,23 @@ export default {
       const rawContent = typeof this.proxyProvidersJsonInput === "string" ? this.proxyProvidersJsonInput.trim() : "";
       if (rawContent === "") {
         this.clearProxyProviderEntries();
-        this.$message.success("JSON 为空，已清空 Providers");
+        this.notifySuccess("JSON 为空，已清空 Providers");
         return;
       }
       let parsed;
       try {
         parsed = JSON.parse(rawContent);
       } catch (error) {
-        this.$message.error("JSON 解析失败，请检查语法");
+        this.notifyError("JSON 解析失败，请检查语法");
         return;
       }
       try {
         this.form.proxyProviderEntries = this.normalizeProxyProviderEntries(parsed, {includeEmpty: true});
         this.syncProxyProvidersStringFromEntries();
         this.refreshProxyProvidersEditorFromEntries();
-        this.$message.success("JSON 校验通过，已回填到引导输入区");
+        this.notifySuccess("JSON 校验通过，已回填到引导输入区");
       } catch (error) {
-        this.$message.error(error.message || "JSON 校验失败");
+        this.notifyError(error.message || "JSON 校验失败");
       }
     },
     parseProxyProvidersJson(content = this.form.proxyProviders) {
@@ -1815,7 +1858,7 @@ export default {
         this.normalizeProxyProviderEntries(this.form.proxyProviderEntries, {includeEmpty: true});
         return true;
       } catch (error) {
-        this.$message.error(error.message || "Providers 参数不合法");
+        this.notifyError(error.message || "Providers 参数不合法");
         return false;
       }
     },
@@ -2251,7 +2294,10 @@ export default {
     },
     makeUrl() {
       if (this.form.sourceSubUrl === "" || this.form.clientType === "") {
-        this.$message.error("订阅链接与客户端为必填项");
+        this.notifyError("订阅链接与客户端为必填项");
+        return false;
+      }
+      if (!this.ensureDialerBackendSupported(true)) {
         return false;
       }
       if (!this.validateProxyProviderEntries()) {
@@ -2267,7 +2313,7 @@ export default {
       const subQuery = this.buildSubQueryParts(sourceSub, {includeFilename: !this.form.useDigest}).join("&");
       this.customSubUrl = this.form.useDigest ? this.buildDigestUrl(backend, subQuery) : backend + "/sub?" + subQuery;
       this.$copyText(this.customSubUrl);
-      this.$message.success("定制订阅已复制到剪贴板");
+      this.notifySuccess("定制订阅已复制到剪贴板");
     },
     confirmUploadConfig() {
       this.loading2 = true;
@@ -2281,18 +2327,18 @@ export default {
           })
           .then(res => {
             if (res.data.code === 0 && res.data.data !== "") {
-              this.$message.success(
+              this.notifySuccess(
                   "远程配置上传成功，配置链接已复制到剪贴板"
               );
               this.form.remoteConfig = res.data.data;
               this.$copyText(this.form.remoteConfig);
               this.dialogUploadConfigVisible = false;
             } else {
-              this.$message.error("远程配置上传失败: " + res.data.msg);
+              this.notifyError("远程配置上传失败: " + res.data.msg);
             }
           })
           .catch(() => {
-            this.$message.error("远程配置上传失败");
+            this.notifyError("远程配置上传失败");
           })
           .finally(() => {
             this.loading2 = false;
@@ -2311,7 +2357,7 @@ export default {
             });
             return response.url;
           } catch (e) {
-            this.$message.error("解析短链接失败，请检查短链接服务端是否配置跨域：" + e)
+            this.notifyError("解析短链接失败，请检查短链接服务端是否配置跨域：" + e)
           } finally {
             this.loading3 = false;
           }
@@ -2320,7 +2366,7 @@ export default {
     },
     confirmLoadConfig() {
       if (this.loadConfig.trim() === "" || !this.loadConfig.trim().includes("http")) {
-        this.$message.error("待解析的订阅链接不合法");
+        this.notifyError("待解析的订阅链接不合法");
         return false;
       }
       (async () => {
@@ -2328,7 +2374,7 @@ export default {
         try {
           url = new URL(await this.analyzeUrl())
         } catch (error) {
-          this.$message.error("请输入正确的订阅地址!");
+          this.notifyError("请输入正确的订阅地址!");
           return;
         }
         this.form.customBackend = url.origin
@@ -2413,7 +2459,7 @@ export default {
         if (proxyProvidersParam !== "") {
           this.form.proxyProviders = this.decodeProxyProvidersFromRequest(proxyProvidersParam);
           if (!this.syncProxyProviderEntriesFromProxyProvidersString()) {
-            this.$message.error("解析 proxy_providers 失败，请检查参数格式");
+            this.notifyError("解析 proxy_providers 失败，请检查参数格式");
             return;
           }
         }
@@ -2451,10 +2497,13 @@ export default {
           this.form.tpl.singbox.ipv6 = param.get("singbox.ipv6") === '1';
         }
         this.dialogLoadConfigVisible = false;
-        this.$message.success("长/短链接已成功解析为订阅信息");
+        this.notifySuccess("长/短链接已成功解析为订阅信息");
       })();
     },
     renderPost() {
+      if (!this.ensureDialerBackendSupported(true)) {
+        return null;
+      }
       if (!this.validateProxyProviderEntries()) {
         return null;
       }
@@ -2486,7 +2535,7 @@ export default {
     },
     confirmUploadScript() {
       if (this.form.sourceSubUrl.trim() === "") {
-        this.$message.error("订阅链接不能为空");
+        this.notifyError("订阅链接不能为空");
         return false;
       }
       this.loading2 = true;
@@ -2505,7 +2554,7 @@ export default {
           })
           .then(res => {
             if (res.data.code === 0 && res.data.data !== "") {
-              this.$message.success(
+              this.notifySuccess(
                   "自定义JS上传成功，订阅链接已复制到剪贴板（IOS设备和Safari浏览器不支持自动复制API，需手动点击复制按钮）"
               );
               this.customSubUrl = res.data.data;
@@ -2513,11 +2562,11 @@ export default {
               this.dialogUploadConfigVisible = false;
               this.btnBoolean = true;
             } else {
-              this.$message.error("自定义JS上传失败: " + res.data.msg);
+              this.notifyError("自定义JS上传失败: " + res.data.msg);
             }
           })
           .catch(() => {
-            this.$message.error("自定义JS上传失败");
+            this.notifyError("自定义JS上传失败");
           })
           .finally(() => {
             this.loading2 = false;
@@ -2531,12 +2580,9 @@ export default {
           .then(res => {
             this.backendVersion = res.data.replace(/backend\n$/gm, "");
             this.backendVersion = this.backendVersion.replace("subconverter", "SubConverter");
-            let a = this.form.customBackend.indexOf("url.v1.mk") !== -1 || this.form.customBackend.indexOf("sub.d1.mk") !== -1;
-            let b = this.form.customBackend.indexOf("127.0.0.1") !== -1;
-            a ? this.$message.success(`${this.backendVersion}` + "肥羊负载均衡增强版后端，已屏蔽免费节点池（会返回403），额外支持vless reality+hysteria+hysteria2订阅转换") : b ? this.$message.success(`${this.backendVersion}` + "本地局域网自建版后端") : this.$message.success(`${this.backendVersion}` + "官方原版后端不支持vless/hysteria订阅转换");
           })
           .catch(() => {
-            this.$message.error("请求SubConverter版本号返回数据失败，该后端不可用！");
+            this.backendVersion = "不可用";
           });
     }
   }
@@ -3097,6 +3143,15 @@ body.dark-mode .subconverter-page .el-button--success {
 body.dark-mode .subconverter-page .el-button--danger {
   background: #7f3340 !important;
   border-color: #a74d5c !important;
+}
+
+.el-message.message-bottom-right {
+  left: auto !important;
+  right: 16px !important;
+  top: auto !important;
+  bottom: 16px !important;
+  transform: none !important;
+  margin: 0 !important;
 }
 
 @keyframes cardRise {
