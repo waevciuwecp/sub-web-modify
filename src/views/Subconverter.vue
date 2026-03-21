@@ -36,396 +36,464 @@
             </div>
           </div>
           <div class="form-shell">
-            <el-form :model="form" label-width="80px" label-position="left" class="primary-form">
-              <el-divider content-position="left" class="section-divider">基础参数</el-divider>
-              <el-form-item label="订阅链接:">
-                <el-input
-                    v-model="form.sourceSubUrl"
-                    type="textarea"
-                    rows="3"
-                    placeholder="支持各种订阅链接或单节点链接，多个链接每行一个或用 | 分隔"
-                />
-              </el-form-item>
-              <el-form-item label="生成类型:">
-                <el-select v-model="form.clientType" style="width: 100%">
-                  <el-option v-for="(v, k) in options.clientTypes" :key="k" :label="k" :value="v"></el-option>
-                </el-select>
-              </el-form-item>
-              <el-form-item label="后端地址:">
-                <el-select
-                    v-model="form.customBackend"
-                    allow-create
-                    filterable
-                    @change="selectChanged"
-                    placeholder="可输入自己的后端"
-                    style="width: 100%"
-                >
-                  <el-option v-for="(v, k) in options.customBackend" :key="k" :label="k" :value="v"></el-option>
-                </el-select>
-              </el-form-item>
-              <el-form-item label="远程配置:">
-                <el-select
-                    v-model="form.remoteConfig"
-                    allow-create
-                    filterable
-                    placeholder="请选择"
-                    style="width: 100%"
-                >
-                  <el-option-group
-                      v-for="group in options.remoteConfig"
-                      :key="group.label"
-                      :label="group.label"
-                  >
-                    <el-option
-                        v-for="item in group.options"
-                        :key="item.value"
-                        :label="item.label"
-                        :value="item.value"
-                    ></el-option>
-                  </el-option-group>
-                </el-select>
-              </el-form-item>
-              <el-form-item label="订阅命名:">
-                <el-input
-                    v-model="form.filename"
-                    placeholder="默认 default.yaml；Digest 模式会同步为 alias(a)"
-                />
-              </el-form-item>
-              <el-form-item label="更新间隔:">
-                <el-input
-                    v-model="form.interval"
-                    placeholder="单位为天，默认 2"
-                />
-              </el-form-item>
-              <el-form-item label-width="80px" class="remote-preset-item">
-                <el-button
-                    size="mini"
-                    plain
-                    type="warning"
-                    @click="selectDialerRemoteConfig"
-                >使用 Dialer 远程配置（默认）
-                </el-button>
-              </el-form-item>
-              <el-alert
-                  class="dense-alert"
-                  title="Digest 默认启用：参数会打包到 q；订阅命名会同时作为 digest alias(a)。"
-                  type="info"
-                  :closable="false"
-                  show-icon
-              />
-              <el-form-item label-width="0px">
-                <el-collapse class="advanced-collapse">
-                  <el-collapse-item>
-                    <template slot="title">
-                      <div class="advanced-toggle-header">
-                        <span class="advanced-toggle-label">高级功能</span>
-                        <span class="advanced-toggle-action">
-                          <i class="el-icon-more-outline"></i>
-                          点击显示/隐藏
-                        </span>
-                      </div>
-                    </template>
-                    <el-divider content-position="left">Dialer Proxy Providers</el-divider>
-                    <el-alert
-                        title="Dialer 对 Clash / ClashR / Sing-box 目标生效，默认使用 Dialer 配置，可按需切换 Dialer LoadBalance"
-                        type="info"
-                        :closable="false"
-                        show-icon
-                        style="margin-bottom: 12px"
+            <div class="workspace-grid">
+              <div class="workspace-main">
+                <el-form :model="form" label-width="80px" label-position="left" class="primary-form">
+                  <el-divider content-position="left" class="section-divider">基础参数</el-divider>
+                  <el-form-item label="订阅链接:">
+                    <el-input
+                        v-model="form.sourceSubUrl"
+                        type="textarea"
+                        rows="3"
+                        placeholder="支持各种订阅链接或单节点链接，多个链接每行一个或用 | 分隔"
                     />
-                    <el-form-item label="Dialer开关:">
-                      <el-switch
-                          v-model="form.useDialer"
-                          active-text="启用 use_dialer"
-                          inactive-text="关闭"
-                      />
-                    </el-form-item>
-                    <el-form-item label="Dialer组名:">
-                      <el-input
-                          v-model="form.dialerGroupName"
-                          :disabled="!form.useDialer"
-                          placeholder="默认 dialer"
-                      />
-                    </el-form-item>
-                    <el-form-item label="应用节点:">
-                      <el-input
-                          v-model="form.applyDialerTo"
-                          :disabled="!form.useDialer"
-                          placeholder="可选正则，例如 awesome|Scholar"
-                      />
-                    </el-form-item>
-                    <el-form-item label="Providers:">
-                      <div class="provider-grid">
-                        <div class="provider-column">
-                          <div class="provider-guide-tip">
-                            按顺序添加：新增空记录 -> 填写 name/url -> 再新增下一条。
+                  </el-form-item>
+                  <el-form-item label="生成类型:">
+                    <el-select v-model="form.clientType" class="full-width">
+                      <el-option v-for="(v, k) in options.clientTypes" :key="k" :label="k" :value="v"></el-option>
+                    </el-select>
+                  </el-form-item>
+                  <el-form-item label="后端地址:">
+                    <el-select
+                        v-model="form.customBackend"
+                        allow-create
+                        filterable
+                        @change="selectChanged"
+                        placeholder="可输入自己的后端"
+                        class="full-width"
+                    >
+                      <el-option v-for="(v, k) in options.customBackend" :key="k" :label="k" :value="v"></el-option>
+                    </el-select>
+                  </el-form-item>
+                  <el-form-item label="远程配置:">
+                    <el-select
+                        v-model="form.remoteConfig"
+                        allow-create
+                        filterable
+                        placeholder="请选择"
+                        class="full-width"
+                    >
+                      <el-option-group
+                          v-for="group in options.remoteConfig"
+                          :key="group.label"
+                          :label="group.label"
+                      >
+                        <el-option
+                            v-for="item in group.options"
+                            :key="item.value"
+                            :label="item.label"
+                            :value="item.value"
+                        ></el-option>
+                      </el-option-group>
+                    </el-select>
+                  </el-form-item>
+                  <el-form-item label="订阅命名:">
+                    <el-input
+                        v-model="form.filename"
+                        placeholder="默认 default.yaml；Digest 模式会同步为 alias(a)"
+                    />
+                  </el-form-item>
+                  <el-form-item label="更新间隔:">
+                    <el-input
+                        v-model="form.interval"
+                        placeholder="单位为天，默认 2"
+                    />
+                  </el-form-item>
+                  <el-form-item label-width="80px" class="remote-preset-item">
+                    <el-button
+                        size="mini"
+                        plain
+                        type="warning"
+                        @click="selectDialerRemoteConfig"
+                    >使用 Dialer 远程配置（默认）
+                    </el-button>
+                  </el-form-item>
+                  <el-alert
+                      class="dense-alert"
+                      title="Digest 默认启用：参数会打包到 q；订阅命名会同时作为 digest alias(a)。"
+                      type="info"
+                      :closable="false"
+                      show-icon
+                  />
+                  <el-form-item label-width="0px">
+                    <el-collapse class="advanced-collapse">
+                      <el-collapse-item>
+                        <template slot="title">
+                          <div class="advanced-toggle-header">
+                            <span class="advanced-toggle-label">高级功能</span>
+                            <span class="advanced-toggle-action">
+                              <i class="el-icon-more-outline"></i>
+                              点击显示/隐藏
+                            </span>
                           </div>
-                          <el-alert
-                              title="每条 provider 至少需要 name 和 url；type 默认 http。"
-                              type="info"
-                              :closable="false"
-                              show-icon
-                              style="margin-bottom: 10px"
+                        </template>
+                        <el-divider content-position="left">Dialer Proxy Providers</el-divider>
+                        <el-alert
+                            class="provider-alert"
+                            title="Dialer 对 Clash / ClashR / Sing-box 目标生效，默认使用 Dialer 配置，可按需切换 Dialer LoadBalance"
+                            type="info"
+                            :closable="false"
+                            show-icon
+                        />
+                        <el-form-item label="Dialer开关:">
+                          <el-switch
+                              v-model="form.useDialer"
+                              active-text="启用 use_dialer"
+                              inactive-text="关闭"
                           />
-                          <div
-                              v-for="(provider, index) in form.proxyProviderEntries"
-                              :key="'provider-' + index"
-                              class="provider-card"
-                          >
-                            <el-row :gutter="8">
-                              <el-col :span="10">
-                                <el-input
-                                    v-model.trim="provider.name"
-                                    placeholder="name，例如 fantastic-Vultr"
-                                />
-                              </el-col>
-                              <el-col :span="6">
-                                <el-input v-model.trim="provider.type" placeholder="type，默认 http"/>
-                              </el-col>
-                              <el-col :span="8" style="text-align: right;">
-                                <el-button
-                                    size="mini"
-                                    type="danger"
-                                    plain
-                                    :disabled="form.proxyProviderEntries.length === 1"
-                                    @click="removeProxyProviderEntry(index)"
-                                >删除
-                                </el-button>
-                              </el-col>
-                            </el-row>
-                            <el-row :gutter="8" style="margin-top: 8px;">
-                              <el-col :span="24">
-                                <el-input v-model.trim="provider.url" placeholder="url，例如 https://example.com/sub.yaml"/>
-                              </el-col>
-                            </el-row>
-                            <el-row :gutter="8" style="margin-top: 8px;">
-                              <el-col :span="16">
-                                <el-input v-model.trim="provider.path" placeholder="可选 path，例如 ./proxy_provider/custom.yaml"/>
-                              </el-col>
-                              <el-col :span="8">
-                                <el-input v-model.trim="provider.interval" placeholder="可选 interval，例如 3600"/>
-                              </el-col>
-                            </el-row>
-                          </div>
-                          <div class="provider-actions">
-                            <el-button size="mini" type="primary" plain @click="addProxyProviderEntry">新增一条 Provider</el-button>
-                            <el-button size="mini" type="success" plain @click="applyDialerProvidersSample">填入示例</el-button>
-                            <el-button size="mini" @click="clearProxyProviderEntries">清空 Providers</el-button>
-                          </div>
-                        </div>
-                        <div class="provider-column provider-json-column">
-                          <div class="provider-json-title">Native JSON Input (Preview)</div>
-                          <div class="provider-expression-hint" v-if="dialerProviderExpressionLoading">
-                            正在预取远程 ini 并识别 Dialer Provider 表达式...
-                          </div>
-                          <div class="provider-expression-hint provider-expression-error" v-else-if="dialerProviderExpressionError">
-                            {{ dialerProviderExpressionError }}
-                          </div>
-                          <div class="provider-expression-hint" v-else-if="dialerProviderExpressions.length > 0">
-                            允许表达式：
-                            <code class="provider-expression-code">{{ dialerProviderExpressionText }}</code>
-                            ，当前匹配 {{ providerPreviewStats.matched }} / {{ providerPreviewStats.total }} 条 name。
-                          </div>
-                          <div class="provider-expression-hint" v-else>
-                            未在当前远程配置中识别到 Dialer Provider 表达式（select-use）。
-                          </div>
-                          <div class="provider-json-editor" :class="{ 'is-error': providerJsonPreviewState.hasError }">
-                            <pre
-                                ref="providerJsonOverlay"
-                                class="provider-json-overlay"
-                                v-html="providerJsonPreviewState.html"
-                            ></pre>
-                            <textarea
-                                ref="providerJsonTextarea"
-                                v-model="proxyProvidersJsonInput"
-                                class="provider-json-textarea"
-                                spellcheck="false"
-                                @scroll="syncProviderJsonOverlayScroll"
-                                placeholder='[{"name":"dialer-a","type":"http","url":"https://example.com/a.yaml","interval":3600}]'
-                            ></textarea>
-                          </div>
-                          <div class="provider-actions">
-                            <el-button size="mini" type="primary" @click="verifyProxyProvidersJsonWriteback">验证并回填</el-button>
-                            <el-button size="mini" plain @click="refreshProxyProvidersEditorFromEntries">刷新预览</el-button>
-                          </div>
-                          <div class="provider-json-tip">
-                            点击“验证并回填”会进行 JSON 校验，并将结果写回左侧引导输入区。
-                          </div>
-                        </div>
-                      </div>
-                    </el-form-item>
-                    <el-divider content-position="left">通用高级参数</el-divider>
-                    <el-form-item label="Digest开关:">
-                      <el-switch
-                          v-model="form.useDigest"
-                          active-text="启用 /digest（默认）"
-                          inactive-text="使用 /sub"
-                      />
-                    </el-form-item>
-                    <el-form-item label="包含节点:">
-                      <el-input v-model="form.includeRemarks" placeholder="要保留的节点，支持正则"/>
-                    </el-form-item>
-                    <el-form-item label="排除节点:">
-                      <el-input v-model="form.excludeRemarks" placeholder="要排除的节点，支持正则"/>
-                    </el-form-item>
-                    <el-form-item label="节点命名:">
-                      <el-input v-model="form.rename" placeholder="举例：`a@b``1@2`，|符可用\转义"/>
-                    </el-form-item>
-                    <el-form-item label="远程设备:">
-                      <el-input v-model="form.devid" placeholder="用于设置QuantumultX的远程设备ID"/>
-                    </el-form-item>
-                    <el-form-item v-if="form.clientType === 'singbox'" label="Sing版本:">
-                      <el-input
-                          v-model.trim="form.singboxVersion"
-                          placeholder="支持 1.12.x - 1.14.x，默认 1.12.0"
-                      />
-                    </el-form-item>
-                    <el-form-item class="eldiy" label-width="0px">
-                      <el-row type="flex">
-                        <el-col>
-                          <el-checkbox v-model="form.nodeList" label="仅输出节点信息" border></el-checkbox>
-                        </el-col>
-                        <el-popover placement="bottom" v-model="form.extraset">
-                          <el-row :gutter="10">
-                            <el-col :span="12">
-                              <el-checkbox v-model="form.emoji" label="Emoji"></el-checkbox>
-                            </el-col>
-                            <el-col :span="12">
-                              <el-checkbox v-model="form.insert" label="插入默认节点"></el-checkbox>
-                            </el-col>
-                          </el-row>
-                          <el-row :gutter="10">
-                            <el-col :span="12">
-                              <el-checkbox v-model="form.udp" label="启用 UDP"></el-checkbox>
-                            </el-col>
-                            <el-col :span="12">
-                              <el-checkbox v-model="form.xudp" label="启用 XUDP"></el-checkbox>
-                            </el-col>
-                          </el-row>
-                          <el-row :gutter="10">
-                            <el-col :span="12">
-                              <el-checkbox v-model="form.tfo" label="启用 TFO"></el-checkbox>
-                            </el-col>
-                            <el-col :span="12">
-                              <el-checkbox v-model="form.sort" label="基础节点排序"></el-checkbox>
-                            </el-col>
-                          </el-row>
-                          <el-row :gutter="10">
-                            <el-col :span="12">
-                              <el-checkbox v-model="form.tpl.clash.doh" label="Clash.DoH"></el-checkbox>
-                            </el-col>
-                            <el-col :span="12">
-                              <el-checkbox v-model="form.appendType" label="插入节点类型"></el-checkbox>
-                            </el-col>
-                          </el-row>
-                          <el-row :gutter="10">
-                            <el-col :span="12">
-                              <el-checkbox v-model="form.tpl.surge.doh" label="Surge.DoH"></el-checkbox>
-                            </el-col>
-                            <el-col :span="12">
-                              <el-checkbox v-model="form.tls13" label="开启TLS_1.3"></el-checkbox>
-                            </el-col>
-                          </el-row>
-                          <el-row :gutter="10">
-                            <el-col :span="12">
-                              <el-checkbox v-model="form.expand" label="展开规则全文"></el-checkbox>
-                            </el-col>
-                            <el-col :span="12">
-                              <el-checkbox v-model="form.new_name" label="Clash新字段名"></el-checkbox>
-                            </el-col>
-                          </el-row>
-                          <el-row :gutter="10">
-                            <el-col :span="12">
-                              <el-checkbox v-model="form.scv" label="跳过证书验证"></el-checkbox>
-                            </el-col>
-                            <el-col :span="12">
-                              <el-checkbox v-model="form.fdn" label="过滤不支持节点"></el-checkbox>
-                            </el-col>
-                          </el-row>
-                          <el-row :gutter="10">
-                            <el-col :span="12">
-                              <div class="singbox-ipv6-wrap">
-                                <el-checkbox v-model="form.tpl.singbox.ipv6" label="Sing-Box支持IPV6"></el-checkbox>
+                        </el-form-item>
+                        <el-form-item label="Dialer组名:">
+                          <el-input
+                              v-model="form.dialerGroupName"
+                              :disabled="!form.useDialer"
+                              placeholder="默认 dialer"
+                          />
+                        </el-form-item>
+                        <el-form-item label="应用节点:">
+                          <el-input
+                              v-model="form.applyDialerTo"
+                              :disabled="!form.useDialer"
+                              placeholder="可选正则，例如 awesome|Scholar"
+                          />
+                        </el-form-item>
+                        <el-form-item label="Providers:">
+                          <div class="provider-grid">
+                            <div class="provider-column">
+                              <div class="provider-guide-tip">
+                                按顺序添加：新增空记录 -> 填写 name/url -> 再新增下一条。
                               </div>
+                              <el-alert
+                                  class="provider-alert provider-alert-tight"
+                                  title="每条 provider 至少需要 name 和 url；type 默认 http。"
+                                  type="info"
+                                  :closable="false"
+                                  show-icon
+                              />
+                              <div
+                                  v-for="(provider, index) in form.proxyProviderEntries"
+                                  :key="'provider-' + index"
+                                  class="provider-card"
+                              >
+                                <el-row :gutter="8">
+                                  <el-col :span="10">
+                                    <el-input
+                                        v-model.trim="provider.name"
+                                        placeholder="name，例如 fantastic-Vultr"
+                                    />
+                                  </el-col>
+                                  <el-col :span="6">
+                                    <el-input v-model.trim="provider.type" placeholder="type，默认 http"/>
+                                  </el-col>
+                                  <el-col :span="8" class="align-right">
+                                    <el-button
+                                        size="mini"
+                                        type="danger"
+                                        plain
+                                        :disabled="form.proxyProviderEntries.length === 1"
+                                        @click="removeProxyProviderEntry(index)"
+                                    >删除
+                                    </el-button>
+                                  </el-col>
+                                </el-row>
+                                <el-row :gutter="8" class="row-gap-sm">
+                                  <el-col :span="24">
+                                    <el-input v-model.trim="provider.url" placeholder="url，例如 https://example.com/sub.yaml"/>
+                                  </el-col>
+                                </el-row>
+                                <el-row :gutter="8" class="row-gap-sm">
+                                  <el-col :span="16">
+                                    <el-input v-model.trim="provider.path" placeholder="可选 path，例如 ./proxy_provider/custom.yaml"/>
+                                  </el-col>
+                                  <el-col :span="8">
+                                    <el-input v-model.trim="provider.interval" placeholder="可选 interval，例如 3600"/>
+                                  </el-col>
+                                </el-row>
+                              </div>
+                              <div class="provider-actions">
+                                <el-button size="mini" type="primary" plain @click="addProxyProviderEntry">新增一条 Provider</el-button>
+                                <el-button size="mini" type="success" plain @click="applyDialerProvidersSample">填入示例</el-button>
+                                <el-button size="mini" @click="clearProxyProviderEntries">清空 Providers</el-button>
+                              </div>
+                            </div>
+                            <div class="provider-column provider-json-column">
+                              <div class="provider-json-title">Native JSON Input (Preview)</div>
+                              <div class="provider-expression-hint" v-if="dialerProviderExpressionLoading">
+                                正在预取远程 ini 并识别 Dialer Provider 表达式...
+                              </div>
+                              <div class="provider-expression-hint provider-expression-error" v-else-if="dialerProviderExpressionError">
+                                {{ dialerProviderExpressionError }}
+                              </div>
+                              <div class="provider-expression-hint" v-else-if="dialerProviderExpressions.length > 0">
+                                允许表达式：
+                                <code class="provider-expression-code">{{ dialerProviderExpressionText }}</code>
+                                ，当前匹配 {{ providerPreviewStats.matched }} / {{ providerPreviewStats.total }} 条 name。
+                              </div>
+                              <div class="provider-expression-hint" v-else>
+                                未在当前远程配置中识别到 Dialer Provider 表达式（select-use）。
+                              </div>
+                              <div class="provider-json-editor" :class="{ 'is-error': providerJsonPreviewState.hasError }">
+                                <pre
+                                    ref="providerJsonOverlay"
+                                    class="provider-json-overlay"
+                                    v-html="providerJsonPreviewState.html"
+                                ></pre>
+                                <textarea
+                                    ref="providerJsonTextarea"
+                                    v-model="proxyProvidersJsonInput"
+                                    class="provider-json-textarea"
+                                    spellcheck="false"
+                                    @scroll="syncProviderJsonOverlayScroll"
+                                    placeholder='[{"name":"dialer-a","type":"http","url":"https://example.com/a.yaml","interval":3600}]'
+                                ></textarea>
+                              </div>
+                              <div class="provider-actions">
+                                <el-button size="mini" type="primary" @click="verifyProxyProvidersJsonWriteback">验证并回填</el-button>
+                                <el-button size="mini" plain @click="refreshProxyProvidersEditorFromEntries">刷新预览</el-button>
+                              </div>
+                              <div class="provider-json-tip">
+                                点击“验证并回填”会进行 JSON 校验，并将结果写回左侧引导输入区。
+                              </div>
+                            </div>
+                          </div>
+                        </el-form-item>
+                        <el-divider content-position="left">通用高级参数</el-divider>
+                        <el-form-item label="Digest开关:">
+                          <el-switch
+                              v-model="form.useDigest"
+                              active-text="启用 /digest（默认）"
+                              inactive-text="使用 /sub"
+                          />
+                        </el-form-item>
+                        <el-form-item label="包含节点:">
+                          <el-input v-model="form.includeRemarks" placeholder="要保留的节点，支持正则"/>
+                        </el-form-item>
+                        <el-form-item label="排除节点:">
+                          <el-input v-model="form.excludeRemarks" placeholder="要排除的节点，支持正则"/>
+                        </el-form-item>
+                        <el-form-item label="节点命名:">
+                          <el-input v-model="form.rename" placeholder="举例：`a@b``1@2`，|符可用\转义"/>
+                        </el-form-item>
+                        <el-form-item label="远程设备:">
+                          <el-input v-model="form.devid" placeholder="用于设置QuantumultX的远程设备ID"/>
+                        </el-form-item>
+                        <el-form-item v-if="form.clientType === 'singbox'" label="Sing版本:">
+                          <el-input
+                              v-model.trim="form.singboxVersion"
+                              placeholder="支持 1.12.x - 1.14.x，默认 1.12.0"
+                          />
+                        </el-form-item>
+                        <el-form-item class="eldiy" label-width="0px">
+                          <el-row type="flex">
+                            <el-col>
+                              <el-checkbox v-model="form.nodeList" label="仅输出节点信息" border></el-checkbox>
                             </el-col>
+                            <el-popover placement="bottom" v-model="form.extraset">
+                              <el-row :gutter="10">
+                                <el-col :span="12">
+                                  <el-checkbox v-model="form.emoji" label="Emoji"></el-checkbox>
+                                </el-col>
+                                <el-col :span="12">
+                                  <el-checkbox v-model="form.insert" label="插入默认节点"></el-checkbox>
+                                </el-col>
+                              </el-row>
+                              <el-row :gutter="10">
+                                <el-col :span="12">
+                                  <el-checkbox v-model="form.udp" label="启用 UDP"></el-checkbox>
+                                </el-col>
+                                <el-col :span="12">
+                                  <el-checkbox v-model="form.xudp" label="启用 XUDP"></el-checkbox>
+                                </el-col>
+                              </el-row>
+                              <el-row :gutter="10">
+                                <el-col :span="12">
+                                  <el-checkbox v-model="form.tfo" label="启用 TFO"></el-checkbox>
+                                </el-col>
+                                <el-col :span="12">
+                                  <el-checkbox v-model="form.sort" label="基础节点排序"></el-checkbox>
+                                </el-col>
+                              </el-row>
+                              <el-row :gutter="10">
+                                <el-col :span="12">
+                                  <el-checkbox v-model="form.tpl.clash.doh" label="Clash.DoH"></el-checkbox>
+                                </el-col>
+                                <el-col :span="12">
+                                  <el-checkbox v-model="form.appendType" label="插入节点类型"></el-checkbox>
+                                </el-col>
+                              </el-row>
+                              <el-row :gutter="10">
+                                <el-col :span="12">
+                                  <el-checkbox v-model="form.tpl.surge.doh" label="Surge.DoH"></el-checkbox>
+                                </el-col>
+                                <el-col :span="12">
+                                  <el-checkbox v-model="form.tls13" label="开启TLS_1.3"></el-checkbox>
+                                </el-col>
+                              </el-row>
+                              <el-row :gutter="10">
+                                <el-col :span="12">
+                                  <el-checkbox v-model="form.expand" label="展开规则全文"></el-checkbox>
+                                </el-col>
+                                <el-col :span="12">
+                                  <el-checkbox v-model="form.new_name" label="Clash新字段名"></el-checkbox>
+                                </el-col>
+                              </el-row>
+                              <el-row :gutter="10">
+                                <el-col :span="12">
+                                  <el-checkbox v-model="form.scv" label="跳过证书验证"></el-checkbox>
+                                </el-col>
+                                <el-col :span="12">
+                                  <el-checkbox v-model="form.fdn" label="过滤不支持节点"></el-checkbox>
+                                </el-col>
+                              </el-row>
+                              <el-row :gutter="10">
+                                <el-col :span="12">
+                                  <div class="singbox-ipv6-wrap">
+                                    <el-checkbox v-model="form.tpl.singbox.ipv6" label="Sing-Box支持IPV6"></el-checkbox>
+                                  </div>
+                                </el-col>
+                              </el-row>
+                              <el-button slot="reference">更多选项</el-button>
+                            </el-popover>
                           </el-row>
-                          <el-button slot="reference">更多选项</el-button>
-                        </el-popover>
-                      </el-row>
-                    </el-form-item>
-                  </el-collapse-item>
-                </el-collapse>
-              </el-form-item>
-              <div class="section-spacer"></div>
-              <el-divider content-position="center">
-                <el-button
-                    type="zhuti"
-                    @click="change">
-                  <i id="rijian" class="el-icon-sunny"></i>
-                  <i id="yejian" class="el-icon-moon"></i>
-                </el-button>
-              </el-divider>
-              <el-divider content-position="left" class="section-divider">输出结果</el-divider>
-              <el-form-item label="定制订阅:">
-                <el-input class="copy-content" disabled v-model="customSubUrl">
-                  <el-button
-                      slot="append"
-                      v-clipboard:copy="customSubUrl"
-                      v-clipboard:success="onCopy"
-                      ref="copy-btn"
-                      icon="el-icon-document-copy"
-                  >复制
-                  </el-button>
-                  <el-button
-                      slot="append"
-                      icon="el-icon-picture-outline"
-                      @click="openCustomSubQrCode"
-                      :disabled="customSubUrl.length === 0"
-                  >二维码
-                  </el-button>
-                </el-input>
-              </el-form-item>
-              <el-form-item label-width="0px" class="action-row action-row-main">
-                <el-button
-                    class="action-btn"
-                    type="danger"
-                    @click="makeUrl"
-                    :disabled="form.sourceSubUrl.length === 0 || btnBoolean"
-                >生成订阅链接
-                </el-button>
-              </el-form-item>
-              <el-form-item label-width="0px" class="action-row action-row-pair">
-                <el-button
-                    class="action-btn"
-                    type="primary"
-                    @click="dialogUploadConfigVisible = true"
-                    icon="el-icon-upload"
-                    :loading="loading2"
-                >自定义配置
-                </el-button>
-                <el-button
-                    class="action-btn"
-                    type="primary"
-                    @click="dialogLoadConfigVisible = true"
-                    icon="el-icon-copy-document"
-                    :loading="loading3"
-                >从URL解析
-                </el-button>
-              </el-form-item>
-              <el-form-item label-width="0px" class="action-row action-row-video">
-                <el-button
-                    class="action-btn action-btn-wide"
-                    type="success"
-                    icon="el-icon-video-play"
-                    @click="centerDialogVisible = true"
-                >视频教程
-                </el-button>
-              </el-form-item>
-            </el-form>
+                        </el-form-item>
+                      </el-collapse-item>
+                    </el-collapse>
+                  </el-form-item>
+                  <div class="section-spacer"></div>
+                  <el-divider content-position="center">
+                    <el-button
+                        type="zhuti"
+                        @click="change"
+                    >
+                      <i id="rijian" class="el-icon-sunny"></i>
+                      <i id="yejian" class="el-icon-moon"></i>
+                    </el-button>
+                  </el-divider>
+                </el-form>
+              </div>
+              <aside class="workspace-side">
+                <div class="result-panel">
+                  <div class="result-panel-heading">输出工作台</div>
+                  <div class="config-summary">
+                    <div class="config-summary-item">
+                      <span class="config-summary-label">客户端</span>
+                      <strong>{{ currentTargetLabel }}</strong>
+                    </div>
+                    <div class="config-summary-item">
+                      <span class="config-summary-label">后端</span>
+                      <strong>{{ summaryBackendLabel }}</strong>
+                    </div>
+                    <div class="config-summary-item">
+                      <span class="config-summary-label">配置</span>
+                      <strong>{{ summaryRemoteConfigLabel }}</strong>
+                    </div>
+                    <div class="config-summary-item">
+                      <span class="config-summary-label">模式</span>
+                      <strong>{{ form.useDigest ? "Digest /digest" : "Classic /sub" }}</strong>
+                    </div>
+                  </div>
+                  <el-divider content-position="left" class="section-divider result-divider">输出结果</el-divider>
+                  <el-input class="copy-content output-input" disabled v-model="customSubUrl">
+                    <el-button
+                        slot="append"
+                        icon="el-icon-document-copy"
+                        @click="copyCustomSubUrl"
+                        :disabled="customSubUrl.length === 0"
+                    >复制
+                    </el-button>
+                    <el-button
+                        slot="append"
+                        icon="el-icon-picture-outline"
+                        @click="openCustomSubQrCode"
+                        :disabled="customSubUrl.length === 0"
+                    >二维码
+                    </el-button>
+                  </el-input>
+                  <div class="result-panel-actions">
+                    <el-button
+                        class="action-btn action-btn-primary"
+                        type="danger"
+                        @click="makeUrl"
+                        :disabled="form.sourceSubUrl.length === 0 || btnBoolean"
+                    >生成订阅链接
+                    </el-button>
+                    <div class="action-btn-row">
+                      <el-button
+                          class="action-btn"
+                          type="primary"
+                          icon="el-icon-document-copy"
+                          @click="copyCustomSubUrl"
+                          :disabled="customSubUrl.length === 0"
+                      >复制
+                      </el-button>
+                      <el-button
+                          class="action-btn"
+                          icon="el-icon-picture-outline"
+                          @click="openCustomSubQrCode"
+                          :disabled="customSubUrl.length === 0"
+                      >二维码
+                      </el-button>
+                    </div>
+                    <div class="action-btn-row">
+                      <el-button class="action-btn" type="warning" icon="el-icon-guide" @click="openWizard">向导</el-button>
+                      <el-button
+                          class="action-btn"
+                          type="primary"
+                          @click="dialogUploadConfigVisible = true"
+                          icon="el-icon-upload"
+                          :loading="loading2"
+                      >自定义配置
+                      </el-button>
+                    </div>
+                    <div class="action-btn-row">
+                      <el-button
+                          class="action-btn"
+                          type="primary"
+                          @click="dialogLoadConfigVisible = true"
+                          icon="el-icon-copy-document"
+                          :loading="loading3"
+                      >从URL解析
+                      </el-button>
+                      <el-button
+                          class="action-btn"
+                          type="success"
+                          icon="el-icon-video-play"
+                          @click="centerDialogVisible = true"
+                      >视频教程
+                      </el-button>
+                    </div>
+                  </div>
+                </div>
+              </aside>
+            </div>
           </div>
         </el-card>
       </el-col>
     </el-row>
+    <div class="mobile-sticky-actions">
+      <el-button
+          class="mobile-action mobile-action-primary"
+          type="danger"
+          @click="makeUrl"
+          :disabled="form.sourceSubUrl.length === 0 || btnBoolean"
+      >生成
+      </el-button>
+      <el-button
+          class="mobile-action"
+          type="primary"
+          icon="el-icon-document-copy"
+          @click="copyCustomSubUrl"
+          :disabled="customSubUrl.length === 0"
+      >复制
+      </el-button>
+      <el-button
+          class="mobile-action"
+          icon="el-icon-picture-outline"
+          @click="openCustomSubQrCode"
+          :disabled="customSubUrl.length === 0"
+      >二维码
+      </el-button>
+      <el-button class="mobile-action" type="warning" icon="el-icon-guide" @click="openWizard">向导</el-button>
+    </div>
     <el-dialog
         title="请选择需要观看的视频教程"
         :visible.sync="centerDialogVisible"
@@ -463,6 +531,170 @@
       </div>
     </el-dialog>
     <el-dialog
+        :visible.sync="wizardVisible"
+        custom-class="wizard-dialog"
+        width="92%"
+        top="8vh"
+        :close-on-click-modal="false"
+    >
+      <div slot="title">URL 构建向导</div>
+      <el-steps :active="wizardStep" finish-status="success" simple class="wizard-steps">
+        <el-step title="初始化"></el-step>
+        <el-step title="决策"></el-step>
+        <el-step title="高级"></el-step>
+        <el-step title="完成"></el-step>
+      </el-steps>
+      <div class="wizard-content">
+        <div v-if="wizardStep === 0">
+          <el-form label-position="top" class="wizard-form">
+            <el-form-item label="订阅链接">
+              <el-input
+                  v-model="form.sourceSubUrl"
+                  type="textarea"
+                  rows="3"
+                  placeholder="支持多个链接，每行一个或用 | 分隔"
+              />
+            </el-form-item>
+            <el-form-item label="客户端">
+              <el-select v-model="form.clientType" class="full-width">
+                <el-option v-for="(v, k) in options.clientTypes" :key="'wiz-target-' + k" :label="k" :value="v"></el-option>
+              </el-select>
+            </el-form-item>
+            <el-form-item label="后端地址">
+              <el-select
+                  v-model="form.customBackend"
+                  class="full-width"
+                  allow-create
+                  filterable
+                  @change="selectChanged"
+              >
+                <el-option v-for="(v, k) in options.customBackend" :key="'wiz-backend-' + k" :label="k" :value="v"></el-option>
+              </el-select>
+            </el-form-item>
+            <el-form-item label="远程配置">
+              <el-select
+                  v-model="form.remoteConfig"
+                  class="full-width"
+                  allow-create
+                  filterable
+              >
+                <el-option-group
+                    v-for="group in options.remoteConfig"
+                    :key="'wiz-remote-' + group.label"
+                    :label="group.label"
+                >
+                  <el-option
+                      v-for="item in group.options"
+                      :key="'wiz-remote-item-' + item.value"
+                      :label="item.label"
+                      :value="item.value"
+                  ></el-option>
+                </el-option-group>
+              </el-select>
+            </el-form-item>
+            <el-form-item label="最终文件名 / Alias">
+              <el-input v-model="form.filename" placeholder="例如 default.yaml" />
+            </el-form-item>
+          </el-form>
+        </div>
+        <div v-else-if="wizardStep === 1" class="wizard-choice">
+          <div class="wizard-choice-item">
+            <div class="wizard-choice-title">是否启用 Dialer？</div>
+            <div class="wizard-choice-desc">若启用，请使用支持 Dialer 的后端，并可在下一步填写组名和应用节点。</div>
+            <el-switch
+                v-model="wizardUseDialer"
+                active-text="启用 Dialer"
+                inactive-text="关闭 Dialer"
+            />
+          </div>
+          <div class="wizard-choice-item">
+            <div class="wizard-choice-title">是否配置高级选项？</div>
+            <div class="wizard-choice-desc">可配置包含/排除、重命名、更新时间、Digest 模式等关键参数。</div>
+            <el-switch
+                v-model="wizardNeedsAdvanced"
+                active-text="需要高级选项"
+                inactive-text="跳过高级选项"
+            />
+          </div>
+        </div>
+        <div v-else-if="wizardStep === 2">
+          <div v-if="wizardNeedsAdvanced">
+            <el-form label-position="top" class="wizard-form">
+              <el-form-item label="Digest 模式">
+                <el-switch
+                    v-model="form.useDigest"
+                    active-text="启用 /digest"
+                    inactive-text="使用 /sub"
+                />
+              </el-form-item>
+              <el-form-item label="包含节点">
+                <el-input v-model="form.includeRemarks" placeholder="支持正则"/>
+              </el-form-item>
+              <el-form-item label="排除节点">
+                <el-input v-model="form.excludeRemarks" placeholder="支持正则"/>
+              </el-form-item>
+              <el-form-item label="节点命名">
+                <el-input v-model="form.rename" placeholder="举例：a@b`1@2"/>
+              </el-form-item>
+              <el-form-item label="更新间隔（天）">
+                <el-input v-model="form.interval" />
+              </el-form-item>
+              <el-form-item label="Sing 版本" v-if="form.clientType === 'singbox'">
+                <el-input v-model.trim="form.singboxVersion" placeholder="默认 1.12.0"/>
+              </el-form-item>
+              <template v-if="wizardUseDialer">
+                <el-form-item label="Dialer 组名">
+                  <el-input v-model="form.dialerGroupName" placeholder="默认 dialer"/>
+                </el-form-item>
+                <el-form-item label="应用节点">
+                  <el-input v-model="form.applyDialerTo" placeholder="可选正则"/>
+                </el-form-item>
+              </template>
+            </el-form>
+          </div>
+          <el-alert
+              v-else
+              type="info"
+              :closable="false"
+              show-icon
+              title="已选择跳过高级选项，点击下一步进入总览。"
+          />
+        </div>
+        <div v-else class="wizard-overview">
+          <div class="config-summary">
+            <div class="config-summary-item">
+              <span class="config-summary-label">客户端</span>
+              <strong>{{ currentTargetLabel }}</strong>
+            </div>
+            <div class="config-summary-item">
+              <span class="config-summary-label">后端</span>
+              <strong>{{ summaryBackendLabel }}</strong>
+            </div>
+            <div class="config-summary-item">
+              <span class="config-summary-label">配置</span>
+              <strong>{{ summaryRemoteConfigLabel }}</strong>
+            </div>
+            <div class="config-summary-item">
+              <span class="config-summary-label">Dialer</span>
+              <strong>{{ wizardUseDialer ? "启用" : "关闭" }}</strong>
+            </div>
+          </div>
+          <el-divider content-position="left" class="section-divider result-divider">生成结果</el-divider>
+          <el-input class="copy-content output-input" disabled v-model="customSubUrl"></el-input>
+        </div>
+      </div>
+      <div slot="footer" class="wizard-footer">
+        <el-button @click="wizardVisible = false">关闭</el-button>
+        <el-button @click="goWizardPrev" :disabled="wizardStep === 0">上一步</el-button>
+        <el-button v-if="wizardStep < 3" type="primary" @click="goWizardNext">下一步</el-button>
+        <template v-else>
+          <el-button type="danger" @click="generateFromWizard" :disabled="form.sourceSubUrl.length === 0 || btnBoolean">生成并复制</el-button>
+          <el-button type="primary" icon="el-icon-document-copy" @click="copyCustomSubUrl" :disabled="customSubUrl.length === 0">复制</el-button>
+          <el-button icon="el-icon-picture-outline" @click="openCustomSubQrCode" :disabled="customSubUrl.length === 0">二维码</el-button>
+        </template>
+      </div>
+    </el-dialog>
+    <el-dialog
         :visible.sync="dialogUploadConfigVisible"
         custom-class="editor-dialog"
         :show-close="false"
@@ -472,7 +704,7 @@
     >
       <el-tabs v-model="activeName" type="card">
         <el-tab-pane label="远程配置上传" name="first">
-          <el-link type="danger" :href="sampleConfig" style="margin-bottom: 15px" target="_blank" icon="el-icon-info">
+          <el-link type="danger" :href="sampleConfig" class="dialog-link" target="_blank" icon="el-icon-info">
             参考案例
           </el-link>
           <el-form label-position="left">
@@ -497,7 +729,7 @@
           </div>
         </el-tab-pane>
         <el-tab-pane label="JS排序节点" name="second">
-          <el-link type="success" :href="scriptConfig" style="margin-bottom: 15px" target="_blank" icon="el-icon-info">
+          <el-link type="success" :href="scriptConfig" class="dialog-link" target="_blank" icon="el-icon-info">
             参考案例
           </el-link>
           <el-form label-position="left">
@@ -523,7 +755,7 @@
           </div>
         </el-tab-pane>
         <el-tab-pane label="JS筛选节点" name="third">
-          <el-link type="warning" :href="filterConfig" style="margin-bottom: 15px" target="_blank" icon="el-icon-info">
+          <el-link type="warning" :href="filterConfig" class="dialog-link" target="_blank" icon="el-icon-info">
             参考案例
           </el-link>
           <el-form label-position="left">
@@ -1232,7 +1464,11 @@ export default {
       dialerProviderExpressionLoading: false,
       dialerProviderExpressionError: "",
       remoteConfigExpressionCache: {},
-      remoteConfigPrefetchTimer: null
+      remoteConfigPrefetchTimer: null,
+      wizardVisible: false,
+      wizardStep: 0,
+      wizardNeedsAdvanced: false,
+      wizardUseDialer: false
     };
   },
   created() {
@@ -1274,6 +1510,36 @@ export default {
         total: this.providerJsonPreviewState.total,
         matched: this.providerJsonPreviewState.matched
       };
+    },
+    currentTargetLabel() {
+      const match = Object.entries(this.options.clientTypes).find(([, value]) => value === this.form.clientType);
+      return match ? match[0] : (this.form.clientType || "未选择");
+    },
+    summaryBackendLabel() {
+      const backend = typeof this.form.customBackend === "string" ? this.form.customBackend.trim() : "";
+      if (backend === "") {
+        return "未设置";
+      }
+      try {
+        const parsed = new URL(backend);
+        return parsed.host;
+      } catch (e) {
+        return this.shortenText(backend, 28);
+      }
+    },
+    summaryRemoteConfigLabel() {
+      const remoteConfig = typeof this.form.remoteConfig === "string" ? this.form.remoteConfig.trim() : "";
+      if (remoteConfig === "") {
+        return "未设置";
+      }
+      try {
+        const parsed = new URL(remoteConfig);
+        const parts = parsed.pathname.split("/").filter(Boolean);
+        const tail = parts.slice(-2).join("/");
+        return this.shortenText(tail !== "" ? tail : parsed.host, 26);
+      } catch (e) {
+        return this.shortenText(remoteConfig, 26);
+      }
     }
   },
   watch: {
@@ -1291,6 +1557,7 @@ export default {
       }
     },
     "form.useDialer"(enabled) {
+      this.wizardUseDialer = enabled;
       if (enabled) {
         this.ensureDialerBackendSupported(true);
       }
@@ -1304,6 +1571,16 @@ export default {
       this.$nextTick(() => {
         this.syncProviderJsonOverlayScroll();
       });
+    },
+    wizardUseDialer(enabled) {
+      this.form.useDialer = enabled;
+    },
+    wizardVisible(visible) {
+      if (!visible) {
+        this.wizardStep = 0;
+      } else {
+        this.wizardUseDialer = this.form.useDialer;
+      }
     }
   },
   methods: {
@@ -1323,6 +1600,88 @@ export default {
     },
     notifyError(message, options = {}) {
       return this.notify("error", message, options);
+    },
+    shortenText(value, maxLength = 24) {
+      const text = typeof value === "string" ? value : "";
+      if (text.length <= maxLength) {
+        return text;
+      }
+      return `${text.slice(0, maxLength - 1)}…`;
+    },
+    copyCustomSubUrl() {
+      const content = typeof this.customSubUrl === "string" ? this.customSubUrl.trim() : "";
+      if (content === "") {
+        this.notifyError("请先生成订阅链接");
+        return false;
+      }
+      return Promise.resolve(this.$copyText(content))
+          .then(() => {
+            this.notifySuccess("已复制");
+            return true;
+          })
+          .catch(() => {
+            this.notifyError("复制失败，请手动复制");
+            return false;
+          });
+    },
+    openWizard() {
+      this.wizardVisible = true;
+      this.wizardStep = 0;
+      this.wizardUseDialer = this.form.useDialer;
+    },
+    goWizardPrev() {
+      if (this.wizardStep === 0) {
+        return;
+      }
+      if (this.wizardStep === 3 && !this.wizardNeedsAdvanced) {
+        this.wizardStep = 1;
+        return;
+      }
+      this.wizardStep -= 1;
+    },
+    goWizardNext() {
+      if (!this.validateWizardStep(this.wizardStep)) {
+        return;
+      }
+      if (this.wizardStep === 1 && !this.wizardNeedsAdvanced) {
+        this.wizardStep = 3;
+        return;
+      }
+      if (this.wizardStep < 3) {
+        this.wizardStep += 1;
+      }
+    },
+    validateWizardStep(step) {
+      if (step === 0) {
+        if (this.form.sourceSubUrl.trim() === "" || this.form.clientType.trim() === "") {
+          this.notifyError("请先填写订阅链接和客户端");
+          return false;
+        }
+        return true;
+      }
+      if (step === 1) {
+        if (this.wizardUseDialer && !this.ensureDialerBackendSupported(true)) {
+          return false;
+        }
+        return this.validateSingboxVersionForCurrentTarget(true);
+      }
+      if (step === 2 && this.wizardNeedsAdvanced) {
+        if (this.wizardUseDialer && !this.ensureDialerBackendSupported(true)) {
+          return false;
+        }
+        if (!this.validateSingboxVersionForCurrentTarget(true)) {
+          return false;
+        }
+        return this.validateProxyProviderEntries();
+      }
+      return true;
+    },
+    generateFromWizard() {
+      const success = this.makeUrl();
+      if (success) {
+        this.wizardStep = 3;
+      }
+      return success;
     },
     isDialerBackendSupported(backend = this.form.customBackend) {
       const text = typeof backend === "string" ? backend : "";
@@ -2387,6 +2746,7 @@ export default {
       this.customSubUrl = this.form.useDigest ? this.buildDigestUrl(backend, subQuery) : backend + "/sub?" + subQuery;
       this.$copyText(this.customSubUrl);
       this.notifySuccess("定制订阅已复制到剪贴板");
+      return true;
     },
     confirmUploadConfig() {
       this.loading2 = true;
@@ -2699,13 +3059,73 @@ export default {
 }
 
 .subconverter-page .page-row {
-  max-width: 1180px;
+  max-width: 1280px;
   margin: 0 auto;
 }
 
 .subconverter-page .form-shell,
 .subconverter-page .primary-form {
   width: 100%;
+}
+
+.subconverter-page .workspace-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 16px;
+}
+
+.subconverter-page .workspace-main {
+  min-width: 0;
+}
+
+.subconverter-page .workspace-side {
+  min-width: 0;
+}
+
+.subconverter-page .result-panel {
+  position: sticky;
+  top: 12px;
+  border: 1px solid #dfdbd1;
+  border-radius: 14px;
+  background: #faf8f3;
+  padding: 12px;
+}
+
+.subconverter-page .result-panel-heading {
+  font-size: 14px;
+  font-weight: 700;
+  color: #2d495d;
+  margin-bottom: 10px;
+  letter-spacing: 0.02em;
+}
+
+.subconverter-page .config-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.subconverter-page .config-summary-item {
+  border: 1px solid #dfdbd0;
+  border-radius: 10px;
+  background: #f4f2eb;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.subconverter-page .config-summary-label {
+  font-size: 11px;
+  color: #607181;
+  letter-spacing: 0.03em;
+}
+
+.subconverter-page .config-summary-item strong {
+  font-size: 12px;
+  color: #294457;
+  line-height: 1.3;
+  word-break: break-all;
 }
 
 .subconverter-page .converter-card {
@@ -3050,32 +3470,117 @@ export default {
   height: 30px;
 }
 
-.subconverter-page .action-row {
-  text-align: center;
+.subconverter-page .full-width {
+  width: 100%;
 }
 
-.subconverter-page .action-row-main {
-  margin-top: 40px;
+.subconverter-page .provider-alert {
+  margin-bottom: 12px;
 }
 
-.subconverter-page .action-row-pair .el-form-item__content {
+.subconverter-page .provider-alert-tight {
+  margin-bottom: 10px;
+}
+
+.subconverter-page .align-right {
+  text-align: right;
+}
+
+.subconverter-page .row-gap-sm {
+  margin-top: 8px;
+}
+
+.subconverter-page .output-input {
+  margin-bottom: 12px;
+}
+
+.subconverter-page .result-panel-actions {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 10px;
+  flex-direction: column;
+  gap: 8px;
 }
 
-.subconverter-page .action-row-pair .el-button + .el-button {
-  margin-left: 0;
+.subconverter-page .action-btn-row {
+  display: flex;
+  gap: 8px;
 }
 
 .subconverter-page .action-btn {
-  width: 160px;
-  max-width: 100%;
+  flex: 1;
+  min-width: 0;
 }
 
-.subconverter-page .action-btn-wide {
-  width: 280px;
+.subconverter-page .action-btn-primary {
+  width: 100%;
+}
+
+.subconverter-page .result-divider {
+  margin-top: 14px;
+}
+
+.subconverter-page .mobile-sticky-actions {
+  display: none;
+}
+
+.subconverter-page .dialog-link {
+  margin-bottom: 15px;
+}
+
+.subconverter-page .wizard-dialog {
+  max-width: 820px;
+}
+
+.subconverter-page .wizard-steps {
+  margin-bottom: 14px;
+}
+
+.subconverter-page .wizard-content {
+  min-height: 250px;
+}
+
+.subconverter-page .wizard-form .el-form-item {
+  margin-bottom: 12px;
+}
+
+.subconverter-page .wizard-choice {
+  display: grid;
+  gap: 12px;
+}
+
+.subconverter-page .wizard-choice-item {
+  border: 1px solid #d6dfea;
+  border-radius: 12px;
+  padding: 12px;
+  background: #f4f8fb;
+}
+
+.subconverter-page .wizard-choice-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #2d4a5f;
+  margin-bottom: 4px;
+}
+
+.subconverter-page .wizard-choice-desc {
+  font-size: 12px;
+  color: #637687;
+  line-height: 1.45;
+  margin-bottom: 8px;
+}
+
+.subconverter-page .wizard-overview .output-input {
+  margin-bottom: 0;
+}
+
+.subconverter-page .wizard-footer {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.subconverter-page .wizard-footer .el-button + .el-button {
+  margin-left: 0;
 }
 
 .subconverter-page .video-dialog {
@@ -3242,6 +3747,38 @@ body.dark-mode .subconverter-page .provider-card {
   border-color: #33485c;
 }
 
+body.dark-mode .subconverter-page .result-panel {
+  background: #121d27;
+  border-color: #314252;
+}
+
+body.dark-mode .subconverter-page .result-panel-heading,
+body.dark-mode .subconverter-page .config-summary-item strong {
+  color: #d4e5f3;
+}
+
+body.dark-mode .subconverter-page .config-summary-item {
+  background: #172632;
+  border-color: #33485c;
+}
+
+body.dark-mode .subconverter-page .config-summary-label {
+  color: #9fb5c8;
+}
+
+body.dark-mode .subconverter-page .wizard-choice-item {
+  background: #172632;
+  border-color: #33485c;
+}
+
+body.dark-mode .subconverter-page .wizard-choice-title {
+  color: #d5e5f2;
+}
+
+body.dark-mode .subconverter-page .wizard-choice-desc {
+  color: #9fb5c8;
+}
+
 body.dark-mode .subconverter-page .provider-expression-hint {
   color: #9db4c8;
 }
@@ -3359,6 +3896,11 @@ body.dark-mode .subconverter-page .copy-content .el-input-group__append .el-butt
 }
 
 @media (max-width: 1100px) {
+  .subconverter-page .workspace-grid {
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: 12px;
+  }
+
   .subconverter-page .header-title-cn {
     font-size: 24px;
   }
@@ -3371,7 +3913,7 @@ body.dark-mode .subconverter-page .copy-content .el-input-group__append .el-butt
 
 @media (max-width: 900px) {
   .subconverter-page {
-    padding: 12px 10px 24px;
+    padding: 12px 10px calc(88px + env(safe-area-inset-bottom));
   }
 
   .subconverter-page .converter-card > .el-card__header,
@@ -3399,14 +3941,72 @@ body.dark-mode .subconverter-page .copy-content .el-input-group__append .el-butt
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .subconverter-page .workspace-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .subconverter-page .result-panel {
+    position: static;
+  }
+
+  .subconverter-page .config-summary {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .subconverter-page .result-panel-actions {
+    display: none;
+  }
+
+  .subconverter-page .mobile-sticky-actions {
+    position: fixed;
+    left: 8px;
+    right: 8px;
+    bottom: calc(8px + env(safe-area-inset-bottom));
+    z-index: 2100;
+    display: grid;
+    grid-template-columns: 1.35fr 1fr 1fr 1fr;
+    gap: 6px;
+    padding: 8px;
+    border: 1px solid #d6d9de;
+    border-radius: 14px;
+    background: rgba(250, 252, 255, 0.96);
+    box-shadow: 0 10px 24px rgba(18, 26, 34, 0.18);
+    backdrop-filter: blur(6px);
+  }
+
+  .subconverter-page .mobile-sticky-actions .mobile-action {
+    min-width: 0;
+    margin: 0;
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
+  .subconverter-page .mobile-sticky-actions .mobile-action span {
+    font-size: 12px;
+  }
+
+  body.dark-mode .subconverter-page .mobile-sticky-actions {
+    background: rgba(16, 26, 34, 0.96);
+    border-color: #314252;
+    box-shadow: 0 12px 26px rgba(2, 5, 8, 0.42);
+  }
+
   .subconverter-page .provider-grid {
     grid-template-columns: 1fr;
+  }
+
+  .el-message.message-bottom-right {
+    left: 8px !important;
+    right: 8px !important;
+    top: auto !important;
+    bottom: calc(78px + env(safe-area-inset-bottom)) !important;
+    width: auto !important;
   }
 }
 
 @media (max-width: 640px) {
   .subconverter-page {
-    padding: 8px 6px 20px;
+    padding: 8px 6px calc(92px + env(safe-area-inset-bottom));
   }
 
   .subconverter-page .converter-card > .el-card__header,
@@ -3425,6 +4025,10 @@ body.dark-mode .subconverter-page .copy-content .el-input-group__append .el-butt
   }
 
   .subconverter-page .info-band {
+    grid-template-columns: 1fr;
+  }
+
+  .subconverter-page .config-summary {
     grid-template-columns: 1fr;
   }
 
@@ -3450,21 +4054,17 @@ body.dark-mode .subconverter-page .copy-content .el-input-group__append .el-butt
     height: 20px;
   }
 
-  .subconverter-page .action-row-main {
-    margin-top: 24px;
-  }
-
-  .subconverter-page .action-btn,
-  .subconverter-page .action-btn-wide {
-    width: 100%;
-  }
-
-  .subconverter-page .action-row-pair .el-form-item__content {
-    gap: 8px;
-  }
-
   .subconverter-page .video-dialog-btn {
     width: 100%;
+  }
+
+  .subconverter-page .wizard-footer {
+    justify-content: stretch;
+  }
+
+  .subconverter-page .wizard-footer .el-button {
+    flex: 1 1 100%;
+    margin-left: 0;
   }
 
   .subconverter-page .dialog-actions {
@@ -3511,12 +4111,21 @@ body.dark-mode .subconverter-page .copy-content .el-input-group__append .el-butt
     margin-left: 0;
   }
 
-  .el-message.message-bottom-right {
-    left: 8px !important;
-    right: 8px !important;
-    top: auto !important;
-    bottom: 10px !important;
-    width: auto !important;
+  .subconverter-page .mobile-sticky-actions {
+    left: 6px;
+    right: 6px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 4px;
+    padding: 6px;
+  }
+
+  .subconverter-page .mobile-sticky-actions .mobile-action {
+    padding-left: 6px;
+    padding-right: 6px;
+  }
+
+  .subconverter-page .mobile-sticky-actions .mobile-action span {
+    font-size: 11px;
   }
 }
 </style>
