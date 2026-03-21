@@ -344,7 +344,7 @@
                           </el-row>
                           <el-row :gutter="10">
                             <el-col :span="12">
-                              <div style="margin-left: 35%">
+                              <div class="singbox-ipv6-wrap">
                                 <el-checkbox v-model="form.tpl.singbox.ipv6" label="Sing-Box支持IPV6"></el-checkbox>
                               </div>
                             </el-col>
@@ -356,7 +356,7 @@
                   </el-collapse-item>
                 </el-collapse>
               </el-form-item>
-              <div style="margin-top: 30px"></div>
+              <div class="section-spacer"></div>
               <el-divider content-position="center">
                 <el-button
                     type="zhuti"
@@ -385,18 +385,18 @@
                   </el-button>
                 </el-input>
               </el-form-item>
-              <el-form-item label-width="0px" style="margin-top: 40px; text-align: center">
+              <el-form-item label-width="0px" class="action-row action-row-main">
                 <el-button
-                    style="width: 120px"
+                    class="action-btn"
                     type="danger"
                     @click="makeUrl"
                     :disabled="form.sourceSubUrl.length === 0 || btnBoolean"
                 >生成订阅链接
                 </el-button>
               </el-form-item>
-              <el-form-item label-width="0px" style="text-align: center">
+              <el-form-item label-width="0px" class="action-row action-row-pair">
                 <el-button
-                    style="width: 120px"
+                    class="action-btn"
                     type="primary"
                     @click="dialogUploadConfigVisible = true"
                     icon="el-icon-upload"
@@ -404,7 +404,7 @@
                 >自定义配置
                 </el-button>
                 <el-button
-                    style="width: 120px"
+                    class="action-btn"
                     type="primary"
                     @click="dialogLoadConfigVisible = true"
                     icon="el-icon-copy-document"
@@ -412,9 +412,9 @@
                 >从URL解析
                 </el-button>
               </el-form-item>
-              <el-form-item label-width="0px" style="text-align: center">
+              <el-form-item label-width="0px" class="action-row action-row-video">
                 <el-button
-                    style="width: 250px;"
+                    class="action-btn action-btn-wide"
                     type="success"
                     icon="el-icon-video-play"
                     @click="centerDialogVisible = true"
@@ -429,31 +429,32 @@
     <el-dialog
         title="请选择需要观看的视频教程"
         :visible.sync="centerDialogVisible"
+        custom-class="video-dialog"
         :show-close="false"
-        width="40vh"
-        top="30vh"
+        width="92%"
+        top="12vh"
         center>
-      <div label-width="0px" style="text-align: center">
+      <div label-width="0px" class="video-dialog-row">
         <el-button
-            style="width: 200px;"
+            class="video-dialog-btn"
             type="primary"
             icon="el-icon-video-play"
             @click="gotoBasicVideo();centerDialogVisible = false"
         >基础视频教程
         </el-button>
       </div>
-      <div label-width="0px" style="text-align: center;margin: 3vh 0 2vh">
+      <div label-width="0px" class="video-dialog-row video-dialog-row-offset">
         <el-button
-            style="width: 200px;"
+            class="video-dialog-btn"
             type="danger"
             icon="el-icon-video-play"
             @click="gotoAdvancedVideo();centerDialogVisible = false"
         >进阶视频教程
         </el-button>
       </div>
-      <div label-width="0px" style="text-align: center;margin: 3vh 0 2vh">
+      <div label-width="0px" class="video-dialog-row video-dialog-row-offset">
         <el-button
-            style="width: 200px;"
+            class="video-dialog-btn"
             type="warning"
             icon="el-icon-download"
             @click="toolsDown"
@@ -463,6 +464,7 @@
     </el-dialog>
     <el-dialog
         :visible.sync="dialogUploadConfigVisible"
+        custom-class="editor-dialog"
         :show-close="false"
         :close-on-click-modal="false"
         :close-on-press-escape="false"
@@ -484,7 +486,7 @@
               ></el-input>
             </el-form-item>
           </el-form>
-          <div style="float: right">
+          <div class="dialog-actions">
             <el-button type="primary" @click="uploadConfig = ''; dialogUploadConfigVisible = false">取 消</el-button>
             <el-button
                 type="primary"
@@ -510,7 +512,7 @@
               ></el-input>
             </el-form-item>
           </el-form>
-          <div style="float: right">
+          <div class="dialog-actions">
             <el-button type="primary" @click="uploadScript = ''; dialogUploadConfigVisible = false">取 消</el-button>
             <el-button
                 type="primary"
@@ -536,7 +538,7 @@
               ></el-input>
             </el-form-item>
           </el-form>
-          <div style="float: right">
+          <div class="dialog-actions">
             <el-button type="primary" @click="uploadFilter = ''; dialogUploadConfigVisible = false">取 消</el-button>
             <el-button
                 type="primary"
@@ -550,6 +552,7 @@
     </el-dialog>
     <el-dialog
         :visible.sync="dialogLoadConfigVisible"
+        custom-class="editor-dialog"
         :show-close="false"
         :close-on-click-modal="false"
         :close-on-press-escape="false"
@@ -582,18 +585,19 @@
     <el-dialog
         title="订阅二维码"
         :visible.sync="dialogQrCodeVisible"
-        width="380px"
+        custom-class="qr-dialog"
+        width="92%"
     >
-      <div style="text-align: center;">
+      <div class="qr-dialog-content">
         <img
             v-if="qrCodeImageData"
             :src="qrCodeImageData"
             alt="订阅二维码"
-            style="width: 320px; height: 320px; max-width: 100%;"
+            class="qr-dialog-image"
         />
         <el-input
             v-if="qrCodeSourceUrl"
-            style="margin-top: 12px;"
+            class="qr-dialog-input"
             :value="qrCodeSourceUrl"
             readonly
         />
@@ -2724,9 +2728,9 @@ export default {
 }
 
 .subconverter-page .converter-header {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(84px, max-content) minmax(0, 1fr) minmax(84px, max-content);
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
 }
 
@@ -3042,6 +3046,107 @@ export default {
   padding-bottom: 12px;
 }
 
+.subconverter-page .section-spacer {
+  height: 30px;
+}
+
+.subconverter-page .action-row {
+  text-align: center;
+}
+
+.subconverter-page .action-row-main {
+  margin-top: 40px;
+}
+
+.subconverter-page .action-row-pair .el-form-item__content {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+.subconverter-page .action-row-pair .el-button + .el-button {
+  margin-left: 0;
+}
+
+.subconverter-page .action-btn {
+  width: 160px;
+  max-width: 100%;
+}
+
+.subconverter-page .action-btn-wide {
+  width: 280px;
+}
+
+.subconverter-page .video-dialog {
+  max-width: 460px;
+}
+
+.subconverter-page .video-dialog .el-dialog__body {
+  padding-top: 18px;
+  padding-bottom: 14px;
+}
+
+.subconverter-page .video-dialog-row {
+  text-align: center;
+}
+
+.subconverter-page .video-dialog-row-offset {
+  margin-top: 16px;
+}
+
+.subconverter-page .video-dialog-btn {
+  width: 220px;
+  max-width: 100%;
+}
+
+.subconverter-page .editor-dialog {
+  max-width: 1080px;
+}
+
+.subconverter-page .dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.subconverter-page .dialog-actions .el-button + .el-button {
+  margin-left: 0;
+}
+
+.subconverter-page .qr-dialog {
+  max-width: 390px;
+}
+
+.subconverter-page .qr-dialog-content {
+  text-align: center;
+}
+
+.subconverter-page .qr-dialog-image {
+  width: min(320px, 100%);
+  height: auto;
+  aspect-ratio: 1 / 1;
+  object-fit: contain;
+}
+
+.subconverter-page .qr-dialog-input {
+  margin-top: 12px;
+}
+
+.subconverter-page .singbox-ipv6-wrap {
+  margin-left: 35%;
+}
+
+.subconverter-page .copy-content .el-input-group__append {
+  padding: 0;
+}
+
+.subconverter-page .copy-content .el-input-group__append .el-button {
+  min-height: 40px;
+}
+
 body.dark-mode .subconverter-page {
   --ink: #d7e4f0;
   --muted-ink: #9cb2c7;
@@ -3229,6 +3334,10 @@ body.dark-mode .subconverter-page .el-button--danger {
   border-color: #a74d5c !important;
 }
 
+body.dark-mode .subconverter-page .copy-content .el-input-group__append .el-button {
+  border-left-color: #3d5367 !important;
+}
+
 .el-message.message-bottom-right {
   left: auto !important;
   right: 16px !important;
@@ -3249,23 +3358,70 @@ body.dark-mode .subconverter-page .el-button--danger {
   }
 }
 
+@media (max-width: 1100px) {
+  .subconverter-page .header-title-cn {
+    font-size: 24px;
+  }
+
+  .subconverter-page .header-title-en {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+  }
+}
+
 @media (max-width: 900px) {
   .subconverter-page {
-    padding: 10px 8px 24px;
+    padding: 12px 10px 24px;
   }
 
   .subconverter-page .converter-card > .el-card__header,
   .subconverter-page .converter-card > .el-card__body {
-    padding-left: 12px;
-    padding-right: 12px;
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .subconverter-page .converter-header {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    row-gap: 10px;
+  }
+
+  .subconverter-page .header-side,
+  .subconverter-page .header-side-right {
+    min-width: auto;
+    width: 100%;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .subconverter-page .info-band {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .subconverter-page .provider-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .subconverter-page {
+    padding: 8px 6px 20px;
+  }
+
+  .subconverter-page .converter-card > .el-card__header,
+  .subconverter-page .converter-card > .el-card__body {
+    padding-left: 10px;
+    padding-right: 10px;
   }
 
   .subconverter-page .header-title-cn {
-    font-size: 22px;
+    font-size: 20px;
   }
 
   .subconverter-page .header-title-en {
-    font-size: 11px;
+    font-size: 10px;
+    letter-spacing: 0.1em;
   }
 
   .subconverter-page .info-band {
@@ -3277,13 +3433,90 @@ body.dark-mode .subconverter-page .el-button--danger {
     gap: 6px;
   }
 
-  .subconverter-page .header-side {
-    min-width: auto;
+  .subconverter-page .primary-form .el-form-item__label {
+    float: none;
+    display: block;
+    width: 100% !important;
+    text-align: left;
+    line-height: 1.35;
+    padding: 0 0 6px;
+  }
+
+  .subconverter-page .primary-form .el-form-item__content {
+    margin-left: 0 !important;
+  }
+
+  .subconverter-page .section-spacer {
+    height: 20px;
+  }
+
+  .subconverter-page .action-row-main {
+    margin-top: 24px;
+  }
+
+  .subconverter-page .action-btn,
+  .subconverter-page .action-btn-wide {
+    width: 100%;
+  }
+
+  .subconverter-page .action-row-pair .el-form-item__content {
     gap: 8px;
   }
 
-  .subconverter-page .provider-grid {
-    grid-template-columns: 1fr;
+  .subconverter-page .video-dialog-btn {
+    width: 100%;
+  }
+
+  .subconverter-page .dialog-actions {
+    justify-content: stretch;
+  }
+
+  .subconverter-page .dialog-actions .el-button {
+    flex: 1 1 100%;
+    margin-left: 0;
+  }
+
+  .subconverter-page .qr-dialog .dialog-footer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .subconverter-page .qr-dialog .dialog-footer .el-button {
+    flex: 1 1 100%;
+    margin-left: 0;
+  }
+
+  .subconverter-page .provider-card .el-row {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  .subconverter-page .provider-card .el-row > [class*="el-col-"] {
+    width: 100%;
+    max-width: 100%;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  .subconverter-page .provider-card .el-row > [class*="el-col-"]:not(:last-child) {
+    margin-bottom: 8px;
+  }
+
+  .subconverter-page .provider-json-editor {
+    min-height: 180px;
+  }
+
+  .subconverter-page .singbox-ipv6-wrap {
+    margin-left: 0;
+  }
+
+  .el-message.message-bottom-right {
+    left: 8px !important;
+    right: 8px !important;
+    top: auto !important;
+    bottom: 10px !important;
+    width: auto !important;
   }
 }
 </style>
