@@ -336,12 +336,31 @@
                           </el-row>
                           <el-row :gutter="10">
                             <el-col :span="12">
-                              <el-checkbox v-model="form.scv" label="跳过证书验证"></el-checkbox>
+                              <el-checkbox v-model="form.scv" label="旧版跳过证书验证（scv）"></el-checkbox>
                             </el-col>
                             <el-col :span="12">
                               <el-checkbox v-model="form.fdn" label="过滤不支持节点"></el-checkbox>
                             </el-col>
                           </el-row>
+                          <el-row :gutter="10">
+                            <el-col :span="12">
+                              <el-input
+                                  v-model="form.pinnedPeerCertSha256"
+                                  placeholder="证书 SHA-256 指纹（pcs）"
+                                  clearable
+                              />
+                            </el-col>
+                            <el-col :span="12">
+                              <el-input
+                                  v-model="form.verifyPeerCertByName"
+                                  placeholder="期望证书名称（vcn）"
+                                  clearable
+                              />
+                            </el-col>
+                          </el-row>
+                          <div class="tls-verification-tip">
+                            {{ tlsVerificationHelpText() }}
+                          </div>
                           <el-row :gutter="10">
                             <el-col :span="12">
                               <div class="singbox-ipv6-wrap">
@@ -643,7 +662,9 @@ const digestCompactAliasByLongKey = Object.freeze({
   ver: "v",
   singbox_ver: "sv",
   dialer_group_name: "dg",
-  apply_dialer_to: "da"
+  apply_dialer_to: "da",
+  pinnedPeerCertSha256: "pcs",
+  verifyPeerCertByName: "vcn"
 });
 const digestCompactAliasByShortKey = Object.freeze(
   Object.entries(digestCompactAliasByLongKey).reduce((acc, [longKey, shortKey]) => {
@@ -1180,6 +1201,8 @@ export default {
         sort: false,
         expand: true,
         scv: false,
+        pinnedPeerCertSha256: "",
+        verifyPeerCertByName: "",
         fdn: false,
         appendType: false,
         insert: false, // 是否插入默认订阅的节点，对应配置项 insert_url
@@ -1988,6 +2011,22 @@ export default {
       this.form.singboxVersion = normalized;
       return true;
     },
+    resolveClientTypeBase(rawClientType) {
+      if (typeof rawClientType !== "string") {
+        return "";
+      }
+      return rawClientType.split("&")[0].trim().toLowerCase();
+    },
+    isXrayFamilyTarget(rawClientType = this.form.clientType) {
+      const clientType = this.resolveClientTypeBase(rawClientType);
+      return clientType === "v2ray" || clientType === "trojan" || clientType === "mixed";
+    },
+    tlsVerificationHelpText() {
+      if (this.isXrayFamilyTarget()) {
+        return "Xray 兼容输出不再自动写出 allowInsecure。需要显式 TLS 校验时，请填写 pcs（证书 SHA-256 指纹）或 vcn（期望证书名称）；scv 仅保留为旧版兼容开关。";
+      }
+      return "scv 仍可用于旧版或非 Xray 兼容工作流；若后端或目标支持显式 Xray TLS 校验，也可直接填写 pcs / vcn。";
+    },
     parseBase36Mask(value) {
       if (typeof value !== "string" || value.trim() === "") {
         return 0;
@@ -2311,6 +2350,12 @@ export default {
       queryParts.push("tfo=" + this.form.tfo.toString());
       queryParts.push("expand=" + this.form.expand.toString());
       queryParts.push("scv=" + this.form.scv.toString());
+      if (this.form.pinnedPeerCertSha256.trim() !== "") {
+        queryParts.push("pinnedPeerCertSha256=" + encodeURIComponent(this.form.pinnedPeerCertSha256.trim()));
+      }
+      if (this.form.verifyPeerCertByName.trim() !== "") {
+        queryParts.push("verifyPeerCertByName=" + encodeURIComponent(this.form.verifyPeerCertByName.trim()));
+      }
       queryParts.push("fdn=" + this.form.fdn.toString());
       if (this.form.clientType.includes("surge") && this.form.tpl.surge.doh === true) {
         queryParts.push("surge.doh=true");
@@ -2563,6 +2608,14 @@ export default {
         if (param.get("scv")) {
           this.form.scv = param.get("scv") === 'true';
         }
+        const pinnedPeerCertParam = this.getFirstParamValue(param, ["pinnedPeerCertSha256", "pcs"]);
+        if (pinnedPeerCertParam !== "") {
+          this.form.pinnedPeerCertSha256 = pinnedPeerCertParam;
+        }
+        const verifyPeerCertByNameParam = this.getFirstParamValue(param, ["verifyPeerCertByName", "vcn"]);
+        if (verifyPeerCertByNameParam !== "") {
+          this.form.verifyPeerCertByName = verifyPeerCertByNameParam;
+        }
         if (param.get("fdn")) {
           this.form.fdn = param.get("fdn") === 'true';
         }
@@ -2608,6 +2661,8 @@ export default {
       data.append("tfo", encodeURIComponent(this.form.tfo.toString()));
       data.append("expand", encodeURIComponent(this.form.expand.toString()));
       data.append("scv", encodeURIComponent(this.form.scv.toString()));
+      data.append("pinnedPeerCertSha256", encodeURIComponent(this.form.pinnedPeerCertSha256.trim()));
+      data.append("verifyPeerCertByName", encodeURIComponent(this.form.verifyPeerCertByName.trim()));
       data.append("fdn", encodeURIComponent(this.form.fdn.toString()));
       data.append("sdoh", encodeURIComponent(this.form.tpl.surge.doh.toString()));
       data.append("cdoh", encodeURIComponent(this.form.tpl.clash.doh.toString()));
@@ -2907,6 +2962,13 @@ export default {
   line-height: 1.5;
 }
 
+.subconverter-page .tls-verification-tip {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: #647080;
+  line-height: 1.5;
+}
+
 .subconverter-page .provider-guide-tip {
   margin-bottom: 8px;
 }
@@ -3201,6 +3263,7 @@ body.dark-mode .subconverter-page .primary-form .el-form-item__label,
 body.dark-mode .subconverter-page .info-label,
 body.dark-mode .subconverter-page .provider-guide-tip,
 body.dark-mode .subconverter-page .provider-json-tip,
+body.dark-mode .subconverter-page .tls-verification-tip,
 body.dark-mode .subconverter-page .provider-json-title {
   color: #9fb5c8 !important;
 }

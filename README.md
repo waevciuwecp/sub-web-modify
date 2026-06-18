@@ -88,12 +88,19 @@ http://192.168.10.1:8090/?backend=https://url.v1.mk
   - `base64url(紧凑 q)`
   - `deflateRaw + base64url(完整 q)`
   - `base64url(完整 q)`
-- 常用短键映射：`t->target`、`u->url`、`c->config`、`i->include`、`e->exclude`、`r->rename`、`d->dev_id`、`iv->interval`、`p->proxy_providers`、`v->ver`、`sv->singbox_ver`、`dg->dialer_group_name`、`da->apply_dialer_to`。
+- 常用短键映射：`t->target`、`u->url`、`c->config`、`i->include`、`e->exclude`、`r->rename`、`d->dev_id`、`iv->interval`、`p->proxy_providers`、`v->ver`、`sv->singbox_ver`、`dg->dialer_group_name`、`da->apply_dialer_to`、`pcs->pinnedPeerCertSha256`、`vcn->verifyPeerCertByName`。
 - Digest 模式下，`filename` 不再写入 `q`，只通过 `a` 传递，避免重复参数导致链接变长；全量参数名仍支持手工编辑。
 - 从 URL 解析时，若路径是 `/digest` 且存在 `a`，前端会优先使用 `a` 回填“订阅命名”。
 - 二维码生成使用更低纠错等级（`L`）与更大尺寸（按 URL 长度自适应），提升长链接的扫码成功率。
 
-### 10) GitHub Actions 运行时
+### 10) Xray TLS 校验参数
+- 前端保留 `scv` 作为旧版兼容开关，但对 Xray 兼容输出不再把它视为显式 TLS 校验配置。
+- 需要现代 Xray TLS 校验时，应使用：
+  - `pcs` / `pinnedPeerCertSha256`：证书 SHA-256 指纹
+  - `vcn` / `verifyPeerCertByName`：期望证书名称
+- 生成和解析 `/sub`、`/digest` URL 时，前端都会透传并回填这两个字段。
+
+### 11) GitHub Actions 运行时
 - Docker 构建工作流已升级到 Node 24 兼容版本：
   - `actions/checkout@v5`
   - `docker/setup-buildx-action@v4`
